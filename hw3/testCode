@@ -1,0 +1,150 @@
+Example Tree
+//    readInput(argc, args, &root);
+
+    /*
+     *                      winterOlympics
+     *                  /                   \
+     *              skiing                skating
+     *           /         \
+     *    1000m downhill  1000m uphill?
+     * */
+/*    insertChild(&root, "winterOlympics");
+    insertChild(&root, "skiing");
+    insertChild(&root, "skating");
+    printf("root %s \n" , root->data);
+    printf("1st child: %s | " , root->children->data);
+    printf("2nd child: %s \n" , root->children->rightSibling->data);
+    //Add a child to skiing
+    insertChild(&root->children, "1000m downhill");
+    insertChild(&root->children, "1000m uphill?");
+    printf("skiing 1st child: %s | " , root->children->children->data);
+    printf("skiing 2nd child: %s \n" , root->children->children->rightSibling->data);
+
+    TreeNode* returnNode = NULL;
+    findNode("1000m uphill?", root, &returnNode);
+    printf("Found Node: %s | Found Node parent: %s ", returnNode->data, returnNode->parent->data);*/
+Probably Trash Code
+else if (strcmp(token, "GetAthleteWithMostMedals") == 0) {
+            printf("%s ", command);
+            ListNode *list = NULL;
+            getListOfAthletes(root, &list);
+
+            ListNode *tempNode = list;
+            while (tempNode != NULL) {
+                ListNode *tempSearchNode = list;
+                while (tempSearchNode != NULL) {
+                    if (strcmp(tempNode->data->data, tempSearchNode->data->data) == 0 && tempNode != tempSearchNode) {
+                        tempNode->numOfMedals++;
+                    }
+                    tempSearchNode = tempSearchNode->next;
+                }
+                tempNode = tempNode->next;
+            }
+
+            int mostMedals = 0;
+            ListNode *athletesWithMostMedals = NULL;
+            ListNode *currentAthlete = list;
+            while (currentAthlete != NULL) {
+                if(alreadyInList(currentAthlete->data->data, athletesWithMostMedals)){
+                    currentAthlete = currentAthlete->next;
+                    continue;
+                }
+                if (currentAthlete->numOfMedals > mostMedals) {
+                    free(athletesWithMostMedals);
+                    athletesWithMostMedals = NULL;
+                }
+                if(currentAthlete->numOfMedals >= mostMedals){
+                    addNode(currentAthlete->data, currentAthlete->numOfMedals, &athletesWithMostMedals);
+                    mostMedals = currentAthlete->numOfMedals;
+                }
+                currentAthlete = currentAthlete->next;
+            }
+
+            ListNode *tempPrintNode = athletesWithMostMedals;
+            while (tempPrintNode != NULL) {
+                printf("%d %s ", tempPrintNode->numOfMedals, tempPrintNode->data->data);
+                tempPrintNode = tempPrintNode->next;
+            }
+            printf("\n");
+        }
+
+Array
+TreeNode* athletesEvents = malloc(sizeof(TreeNode*));
+            int index = 0;
+            ListNode *athlete = athletes;
+            while (athlete != NULL) {
+                char* data = athlete->data->data;
+                char* safeData = malloc(strlen(athlete->data->data));
+                strcpy(safeData, data);
+
+                if(strcmp(getAthleteFromString(safeData), token) == 0){
+                    if(index == 0){
+                        athletesEvents = calloc(athlete->numOfMedals, sizeof(TreeNode*));
+                    }
+                    athletesEvents[index] = athlete->data;
+                    index++;
+                }
+                free(safeData);
+                athlete = athlete->next;
+            }
+
+            printf("%s", token);
+            /*ListNode* childOfEvent = athletesEvents;
+            while (childOfEvent != NULL) {
+                printf(" %s:%s", childOfEvent->data->parent->parent->data, childOfEvent->data->parent->data);
+                childOfEvent = childOfEvent->next;
+            }*/
+            for (int i = 0; i < index; ++i) {
+                printf(" %s:%s", athletesEvents[i]->parent->parent->data, athletesEvents[i]->parent->data);
+            }
+
+Array 2
+/*TreeNode** athletesEvents = malloc(sizeof(TreeNode*));
+            char** sportsAndEvents;
+            int index = 0;
+            ListNode *athlete = athletes;
+            while (athlete != NULL) {
+                char* data = athlete->data->data;
+                char* safeData = malloc(strlen(athlete->data->data));
+                strcpy(safeData, data);
+
+                if(strcmp(getAthleteFromString(safeData), token) == 0){
+                    char* sport = athlete->data->parent->parent->data;
+                    char* event = athlete->data->parent->data;
+                    if(index == 0){
+                        athletesEvents = calloc(athlete->numOfMedals, sizeof(TreeNode*));
+                        sportsAndEvents = calloc(2, sizeof(char*));
+                        sportsAndEvents
+                    }
+
+                    for (int i = 0; i < index; ++i) {
+                        if(strcmp(sport, sportsAndEvents[i]) == 0){}
+
+                    }
+                    index++;
+                }
+                free(safeData);
+                athlete = athlete->next;
+            }
+
+            printf("%s", token);
+            for (int i = 0; i < index; ++i) {
+                printf(" %s:%s", athletesEvents[i]->parent->parent->data, athletesEvents[i]->parent->data);
+            }*/
+
+PrintTree
+void printTree(TreeNode *);
+// Recurse through tree to print it out. I used this for debugging
+void printTree(TreeNode *node) {
+    if (node != NULL) {
+        printf("%s ", node->data);
+        if (node->children != NULL) {
+            printf("( ");
+            printTree(node->children);
+            printf(") ");
+        }
+        if (node->rightSibling != NULL) {
+            printTree(node->rightSibling);
+        }
+    }
+}

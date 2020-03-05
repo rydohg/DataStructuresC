@@ -1,0 +1,2 @@
+winterOlympics2014 speedSkating figureSkating
+speedSkating 1000mMen 1000mWomen

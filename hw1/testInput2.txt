@@ -1,0 +1,13 @@
+SetShippingCost ab 2 20
+SetShippingCost aa 2 20
+SetShippingCost bb 2 20
+SetProductPrice appleIphone ab 599
+SetProductPrice appleIphone aa 600
+SetProductPrice appleIphone bb 601
+IncreaseInventory appleIphone aa 3
+IncreaseInventory appleIphone ab 3
+IncreaseInventory appleIphone bb 3
+CustomerPurchase appleIphone aa 1
+CustomerPurchase appleIphone ab 1
+CustomerPurchase appleIphone bb 2
+DisplaySellerList appleIphone
