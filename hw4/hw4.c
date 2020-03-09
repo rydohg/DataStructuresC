@@ -7,14 +7,11 @@
   Description of this file:
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include <zconf.h>
 #include "test.h"
 
-Order** heap;
 int sellerHeapSize = 0;
+int buyerHeapSize = 0;
 
 int main(int argc, char** args){
     if (argc < 2) {
@@ -23,22 +20,14 @@ int main(int argc, char** args){
     }
     int arrSize = 15;
     Order** sellerHeap = calloc(sizeof(Order), arrSize);
-/*    enterSellOrder("idk", 12345, 3, 1, sellerHeap);
-    enterSellOrder("idk", 12345, 2, 1, sellerHeap);
-    enterSellOrder("idk", 12345, 15, 1, sellerHeap);
-    enterSellOrder("idk", 12345, 5, 1, sellerHeap);
-    enterSellOrder("idk", 12345, 4, 1, sellerHeap);
-    enterSellOrder("idk", 12345, 45, 1, sellerHeap);*/
-//    insert(2);
-//    delete(1);
-//    insert(15);
-//    insert(5);
-//    insert(4);
-//    insert(45);
-    readInput(args[1], sellerHeap);
-/*    for (int i = 0; i < sellerHeapSize; ++i) {
-        printf("%s %d %lf\n", sellerHeap[i]->buyer, sellerHeap[i]->time, sellerHeap[i]->price);
-    }*/
+    Order** buyerHeap = calloc(sizeof(Order), arrSize);
+
+    enterSellOrder("s a", 1000, 3, 1, sellerHeap, buyerHeap);
+    enterBuyOrder("b b", 2000, 3, 1, buyerHeap, sellerHeap);
+    enterSellOrder("s c", 3000, 15, 2, sellerHeap, buyerHeap);
+    enterBuyOrder("b d", 4000, 15, 1, buyerHeap, sellerHeap);
+
+//    readInput(args[1], sellerHeap, buyerHeap);
 
     for (int i = 0; i < sellerHeapSize; ++i) {
         free(sellerHeap[i]);
@@ -46,7 +35,7 @@ int main(int argc, char** args){
     return 0;
 }
 
-void readInput(char *filename, Order** sellerHeap) {
+void readInput(char *filename, Order** sellerHeap, Order** buyerHeap) {
     FILE *inputDataFile = fopen(filename, "r");
 
     char *currentLine = malloc(128 * sizeof(char));
@@ -76,15 +65,15 @@ void readInput(char *filename, Order** sellerHeap) {
                 int quantity = atoi(token);
 
                 if(firstToken[5] == 'B'){
-                    enterBuyOrder(buyer, time, price, quantity);
+                    enterBuyOrder(buyer, time, price, quantity, buyerHeap, sellerHeap);
                 } else if(firstToken[5] == 'S'){
-                    enterSellOrder(buyer, time, price, quantity, sellerHeap);
+                    enterSellOrder(buyer, time, price, quantity, sellerHeap, buyerHeap);
                 }
 
             } else if (firstToken[0] == 'D'){
                 int time = atoi(token);
                 if(firstToken[7] == 'H'){
-                    displayHighestBuyOrder(time);
+                    displayHighestBuyOrder(time, buyerHeap);
                 } else if(firstToken[7] == 'L'){
                     displayLowestSellOrder(time, sellerHeap);
                 }
@@ -97,11 +86,59 @@ void readInput(char *filename, Order** sellerHeap) {
     free(currentLine);
 }
 
-int enterBuyOrder(char *buyer, int time,  double price, int quantity) {
+int enterBuyOrder(char *buyer, int time,  double price, int quantity, Order** buyerHeap, Order** sellerHeap) {
+    Order* idk = malloc(sizeof(Order));
+    idk->buyer = buyer;
+    idk->time = time;
+    idk->price = price;
+    idk->quantity = quantity;
 
+    printf("EnterBuyOrder: %s %.2lf %d\n", buyer, price, quantity);
+    buyerHeap[buyerHeapSize] = idk;
+    int index = buyerHeapSize;
+
+    while (index != 0 && buyerHeap[parent(index)]->price <= buyerHeap[index]->price){
+        // If there's a price tie then only swap if the new seller is earlier
+        if(buyerHeap[parent(index)]->price == buyerHeap[index]->price && buyerHeap[parent(index)]->time < buyerHeap[index]->time){
+            break;
+        }
+
+        swap(buyerHeap[index], buyerHeap[parent(index)]);
+        index = parent(index);
+    }
+    buyerHeapSize++;
+
+    int sellerPriceIndex = findPrice(price, sellerHeap, sellerHeapSize);
+    if(sellerHeap[0] != NULL && sellerPriceIndex != 1){
+        execute(buyerHeap, sellerHeap);
+    }
+    return 0;
 }
 
-int enterSellOrder(char *buyer, int time,  double price, int quantity, Order** sellerHeap) {
+void execute(Order **buyerHeap, Order **sellerHeap) {
+    /*if(buyerHeap[0]->price > sellerHeap[0]->price){}*/
+    printf("Before:\nSellers:\n");
+    printHeap(sellerHeap, sellerHeapSize);
+    printf("Buyers:\n");
+    printHeap(buyerHeap, buyerHeapSize);
+
+    int buyerOrderSize = buyerHeap[0]->quantity;
+    buyerHeap[0]->quantity -= sellerHeap[0]->quantity;
+    sellerHeap[0]->quantity -= buyerOrderSize;
+    if(sellerHeap[0]->quantity <= 0){
+        removeMin(sellerHeap);
+    }
+    if(buyerHeap[0]->quantity <= 0) {
+        removeMax(buyerHeap);
+    }
+
+    printf("After:\nSellers:\n");
+    printHeap(sellerHeap, sellerHeapSize);
+    printf("Buyers:\n");
+    printHeap(buyerHeap, buyerHeapSize);
+}
+
+int enterSellOrder(char *buyer, int time,  double price, int quantity, Order** sellerHeap, Order** buyerHeap) {
     Order* idk = malloc(sizeof(Order));
     idk->buyer = buyer;
     idk->time = time;
@@ -122,11 +159,17 @@ int enterSellOrder(char *buyer, int time,  double price, int quantity, Order** s
         index = parent(index);
     }
     sellerHeapSize++;
+
+    if(buyerHeap[0] != NULL && price == buyerHeap[0]->price){
+        execute(buyerHeap, sellerHeap);
+    }
     return 0;
 }
 
-void displayHighestBuyOrder(int time) {
-
+void displayHighestBuyOrder(int time, Order** buyerHeap) {
+    if(buyerHeap[0]->time < time){
+        printf("DisplayHighestBuyer: %s %.2lf %d\n", buyerHeap[0]->buyer, buyerHeap[0]->price, buyerHeap[0]->quantity);
+    }
 }
 
 void displayLowestSellOrder(int time, Order** sellerHeap) {
@@ -135,32 +178,10 @@ void displayLowestSellOrder(int time, Order** sellerHeap) {
     }
 }
 
-/*void insert(double a) {
-    Order* idk = malloc(sizeof(Order));
-    idk->price = a;
-    idk->buyer = NULL;
-    idk->quantity = 0;
-    idk->time = 0;
-
-    heap[sellerHeapSize] = idk;
-    int index = sellerHeapSize;
-
-    while (index != 0 && heap[parent(index)]->price > heap[index]->price){
-        swap(heap[index], heap[parent(index)]);
-        index = parent(index);
+void printHeap(Order** heap, int heapSize){
+    for (int i = 0; i < heapSize; ++i) {
+        printf("%s %.2lf %d %d\n", heap[i]->buyer, heap[i]->price, heap[i]->quantity, heap[i]->time);
     }
-    sellerHeapSize++;
-}*/
-
-void delete(int index, Order** sellerHeap) {
-    sellerHeap[index]->price = INT_MIN;
-
-    while (index != 0 && heap[parent(index)]->price > heap[index]->price){
-        swap(heap[index], heap[parent(index)]);
-        index = parent(index);
-    }
-
-    removeMin(sellerHeap);
 }
 
 void minHeapify(int index, Order** sellerHeap){
@@ -184,4 +205,35 @@ double removeMin(Order** sellerHeap){
     minHeapify(0, sellerHeap);
 
     return min;
+}
+
+void maxHeapify(int index, Order** buyerHeap){
+    int max = index;
+    if (left(index) < buyerHeapSize && buyerHeap[left(index)]->price > buyerHeap[index]->price)
+        max = left(index);
+    if (right(index) < buyerHeapSize && buyerHeap[right(index)]->price > buyerHeap[max]->price)
+        max = right(index);
+    if (max != index){
+        swap(buyerHeap[index], buyerHeap[max]);
+        maxHeapify(max, buyerHeap);
+    }
+}
+
+double removeMax(Order** buyerHeap){
+    double max = buyerHeap[0]->price;
+    //Send it to the ascendant realm
+    buyerHeap[0]->price = INT_MIN;
+    maxHeapify(0, buyerHeap);
+
+    buyerHeapSize--;
+    return max;
+}
+
+int findPrice(double price, Order** heap, int heapSize){
+    for (int i = 0; i < heapSize; ++i) {
+        if(price == heap[i]->price){
+            return i;
+        }
+    }
+    return -1;
 }
