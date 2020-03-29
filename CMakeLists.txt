@@ -14,4 +14,7 @@ project(hw3)
 add_executable(hw3 hw3/hw3.c)
 
 project(hw4)
-add_executable(hw4 hw4/hw4.c hw4/test.h)
+add_executable(hw4 hw4/hw4.c)
+
+project(hw4extra)
+add_executable(hw4extra hw4/hw4_extra.c)

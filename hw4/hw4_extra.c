@@ -9,6 +9,12 @@
   to best match sellers to buyers of our fake cryptocurrency
 */
 
+/*
+  We can create an array sorted based on the buyer/seller's name
+  to run a binary search to find them faster than O(n) and the
+  array would contain the index of that buyer/seller in their
+  respective heaps
+*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,6 +32,9 @@ int enterSellOrder(char *seller, int time, double price, int quantity, Order** s
 void displayHighestBuyOrder(int time, Order** buyerHeap);
 void displayLowestSellOrder(int time, Order** sellerHeap);
 void execute(Order **buyerHeap, Order **sellerHeap, double price);
+
+//Extra credit functions
+
 
 //Heap functions
 void minHeapify(int index, Order** sellerHeap);
@@ -47,19 +56,44 @@ void printHeap(Order** heap, int heapSize);
 
 void readInput(char* filename, Order** sellerHeap, Order** buyerHeap);
 
+void calculateBuyerArray(Order **buyerHeap);
+void calculateSellerArray(Order** sellerHeap);
+int binSearch(char* name, int* array, int arraySize, Order** heap);
+void changeBuyOrder(int time, char* buyer, double price, int quantity, Order** buyerHeap, Order** sellerHeap);
+void changeSellOrder(int time, char* seller, double price, int quantity, Order** buyerHeap, Order** sellerHeap);
+void cancelBuyOrder(char* buyer, int time, Order** buyerHeap);
+void cancelSellOrder(char* seller, int time, Order** sellerHeap);
+
 int sellerHeapSize = 0;
 int buyerHeapSize = 0;
+
+#define ARRAY_SIZE 30
+int buyerArray[ARRAY_SIZE];
+int buyerArrSize = 0;
+int sellerArray[ARRAY_SIZE];
+int sellerArrSize = 0;
 
 int main(int argc, char** args){
     if (argc < 2) {
         printf("Missing an input file");
         exit(1);
     }
-    int arrSize = 30;
-    Order** sellerHeap = calloc(sizeof(Order), arrSize);
-    Order** buyerHeap = calloc(sizeof(Order), arrSize);
+    Order** sellerHeap = calloc(sizeof(Order), ARRAY_SIZE);
+    Order** buyerHeap = calloc(sizeof(Order), ARRAY_SIZE);
 
     readInput(args[1], sellerHeap, buyerHeap);
+
+//    printf("idk");
+//    enterSellOrder("c", 1, 23.0, 1, sellerHeap, buyerHeap);
+//    enterSellOrder("a", 1, 1.0, 1, sellerHeap, buyerHeap);
+//    enterSellOrder("b", 1, 32.0, 1, sellerHeap, buyerHeap);
+//    enterSellOrder("f", 1, 4.0, 1, sellerHeap, buyerHeap);
+//    enterSellOrder("e", 1, 5.0, 1, sellerHeap, buyerHeap);
+//    enterSellOrder("d", 1, 6.0, 1, sellerHeap, buyerHeap);
+//    printHeap(sellerHeap, sellerHeapSize);
+//    cancelSellOrder("c", buyerHeap, sellerHeap);
+//    printf("NewHeap\n");
+//    printHeap(sellerHeap, sellerHeapSize);
 
     int i;
     for (i = 0; i < sellerHeapSize; ++i) {
@@ -125,6 +159,42 @@ void readInput(char *filename, Order** sellerHeap, Order** buyerHeap) {
                     displayLowestSellOrder(time, sellerHeap);
                 }
             }
+            //Extra credit: Change commands
+            else if (firstToken[1] == 'h'){
+                int time = atoi(token);
+
+                token = strtok(NULL, " ");
+
+                char* name = malloc(strlen(token) + 1);
+                strcpy(name, token);
+
+                token = strtok(NULL, " ");
+                double price = atof(token);
+
+                token = strtok(NULL, " ");
+                int quantity = atoi(token);
+
+                if (firstToken[6] == 'B'){
+                    changeBuyOrder(time, name, price, quantity, buyerHeap, sellerHeap);
+                } else if (firstToken[6] == 'S'){
+                    changeSellOrder(time, name, price, quantity, buyerHeap, sellerHeap);
+                }
+            }
+            //Extra credit: Cancel commands
+            else if (firstToken[1] == 'a'){
+                int time = atoi(token);
+
+                token = strtok(NULL, " ");
+                char* name = malloc(strlen(token) + 1);
+                strcpy(name, token);
+                name[strcspn(name, "\n")] = 0;
+
+                if (firstToken[6] == 'B'){
+                    cancelBuyOrder(name, time, buyerHeap);
+                } else if (firstToken[6] == 'S'){
+                    cancelSellOrder(name, time, sellerHeap);
+                }
+            }
 
             token = strtok(NULL, " ");
         }
@@ -132,6 +202,102 @@ void readInput(char *filename, Order** sellerHeap, Order** buyerHeap) {
     }
     fclose(inputDataFile);
     free(currentLine);
+}
+void changeBuyOrder(int time, char *buyer, double price, int quantity, Order** buyerHeap, Order** sellerHeap) {
+    int index = binSearch(buyer, buyerArray, buyerArrSize, buyerHeap);
+    printf("ChangeBuyOrder %06d %s %.2lf %d", time, buyer, price, quantity);
+    if(index == -1){
+        printf(" noBuyerError\n");
+        return;
+    }
+    printf("\n");
+    buyerHeap[index]->price = price;
+    buyerHeap[index]->quantity = quantity;
+
+    while (index != 0 && buyerHeap[parent(index)]->price <= buyerHeap[index]->price){
+        // If there's a price tie then only swap if the new seller is earlier
+        if(buyerHeap[parent(index)]->price == buyerHeap[index]->price && buyerHeap[parent(index)]->time < buyerHeap[index]->time){
+            break;
+        }
+
+        swap(buyerHeap[index], buyerHeap[parent(index)]);
+        index = parent(index);
+    }
+
+    //Execute if there's a matching sell order or if there's a sell order cheaper than the buy order
+    int sellerPriceIndex = findPrice(price, sellerHeap, sellerHeapSize);
+    if(sellerHeap[0] != NULL && sellerPriceIndex != 1){
+        if(price > sellerHeap[0]->price){
+            execute(buyerHeap, sellerHeap, (price + sellerHeap[0]->price)/2);
+            calculateSellerArray(sellerHeap);
+        } else if (price == sellerHeap[0]->price){
+            execute(buyerHeap, sellerHeap, price);
+            calculateSellerArray(sellerHeap);
+        }
+    }
+    //Extra Credit
+    calculateBuyerArray(buyerHeap);
+}
+
+void changeSellOrder(int time, char* seller, double price, int quantity, Order** buyerHeap, Order** sellerHeap){
+    int index = binSearch(seller, sellerArray, sellerArrSize, sellerHeap);
+    printf("ChangeSellOrder %06d %s %.2lf %d", time, seller, price, quantity);
+    if(index == -1){
+        printf(" noSellerError\n");
+        return;
+    }
+    printf("\n");
+    sellerHeap[index]->price = price;
+    sellerHeap[index]->time = time;
+    sellerHeap[index]->quantity = quantity;
+
+    while (index > 0 && sellerHeap[parent(index)]->price >= sellerHeap[index]->price){
+        // If there's a price tie then only swap if the new seller is earlier
+        if(sellerHeap[parent(index)]->price == sellerHeap[index]->price && sellerHeap[parent(index)]->time < sellerHeap[index]->time){
+            break;
+        }
+
+        swap(sellerHeap[index], sellerHeap[parent(index)]);
+        index = parent(index);
+    }
+
+    //Execute if there's a matching buy order or if there's a buy order offering more money than the sell price
+    if(buyerHeap[0] != NULL && price < buyerHeap[0]->price){
+        execute(buyerHeap, sellerHeap, (price + buyerHeap[0]->price)/2);
+        calculateBuyerArray(buyerHeap);
+    } else if(buyerHeap[0] != NULL && price == buyerHeap[0]->price){
+        execute(buyerHeap, sellerHeap, price);
+        calculateBuyerArray(buyerHeap);
+    }
+    calculateSellerArray(sellerHeap);
+}
+
+void cancelBuyOrder(char* buyer, int time, Order** buyerHeap){
+    int index = binSearch(buyer, buyerArray, buyerArrSize, buyerHeap);
+    printf("CancelBuyOrder %06d %s", time, buyer);
+    if(index == -1){
+        printf(" noBuyerError");
+        return;
+    }
+    buyerHeap[index] = buyerHeap[buyerHeapSize - 1];
+    buyerHeapSize--;
+    maxHeapify(0, buyerHeap);
+    calculateBuyerArray(buyerHeap);
+}
+
+void cancelSellOrder(char* seller, int time, Order** sellerHeap){
+    int index = binSearch(seller, sellerArray, sellerArrSize, sellerHeap);
+    printf("CancelSellOrder %06d %s", time, seller);
+    if(index == -1){
+        printf(" noSellerError\n");
+        return;
+    }
+    printf("\n");
+    sellerHeap[index] = sellerHeap[sellerHeapSize-1];
+    sellerHeapSize--;
+
+    minHeapify(0, sellerHeap);
+    calculateSellerArray(sellerHeap);
 }
 
 int enterBuyOrder(char *buyer, int time,  double price, int quantity, Order** buyerHeap, Order** sellerHeap) {
@@ -159,16 +325,66 @@ int enterBuyOrder(char *buyer, int time,  double price, int quantity, Order** bu
     }
     buyerHeapSize++;
 
+
     //Execute if there's a matching sell order or if there's a sell order cheaper than the buy order
     int sellerPriceIndex = findPrice(price, sellerHeap, sellerHeapSize);
     if(sellerHeap[0] != NULL && sellerPriceIndex != 1){
         if(price > sellerHeap[0]->price){
             execute(buyerHeap, sellerHeap, (price + sellerHeap[0]->price)/2);
+            calculateSellerArray(sellerHeap);
         } else if (price == sellerHeap[0]->price){
             execute(buyerHeap, sellerHeap, price);
+            calculateSellerArray(sellerHeap);
         }
     }
+    //Extra Credit
+    calculateBuyerArray(buyerHeap);
     return 0;
+}
+
+void calculateBuyerArray(Order** buyerHeap){
+    buyerArrSize = 0;
+    int i;
+    for (i = 0; i < buyerHeapSize; ++i) {
+        buyerArray[i] = i;
+        buyerArrSize++;
+    }
+
+    int minIndex;
+    for (i = 0; i < buyerArrSize - 1; ++i) {
+        minIndex = i;
+        int j;
+        for (j = i + 1; j < buyerArrSize; ++j) {
+            if(strcmp(buyerHeap[buyerArray[j]]->name, buyerHeap[buyerArray[minIndex]]->name) < 0){
+                minIndex = j;
+            }
+        }
+        int temp = buyerArray[minIndex];
+        buyerArray[minIndex] = buyerArray[i];
+        buyerArray[i] = temp;
+    }
+}
+
+void calculateSellerArray(Order** sellerHeap){
+    sellerArrSize = 0;
+    int i;
+    for (i = 0; i < sellerHeapSize; ++i) {
+        sellerArray[i] = i;
+        sellerArrSize++;
+    }
+    int minIndex;
+    for (i = 0; i < sellerArrSize - 1; ++i) {
+        minIndex = i;
+        int j;
+        for (j = i + 1; j < sellerArrSize; ++j) {
+            if(strcmp(sellerHeap[sellerArray[j]]->name, sellerHeap[sellerArray[minIndex]]->name) < 0){
+                minIndex = j;
+            }
+        }
+        int temp = sellerArray[minIndex];
+        sellerArray[minIndex] = sellerArray[i];
+        sellerArray[i] = temp;
+    }
 }
 
 void execute(Order **buyerHeap, Order **sellerHeap, double price) {
@@ -231,6 +447,7 @@ int enterSellOrder(char *seller, int time,  double price, int quantity, Order** 
     } else if(buyerHeap[0] != NULL && price == buyerHeap[0]->price){
         execute(buyerHeap, sellerHeap, price);
     }
+    calculateSellerArray(sellerHeap);
     return 0;
 }
 
@@ -307,6 +524,31 @@ int findPrice(double price, Order** heap, int heapSize){
     for (i = 0; i < heapSize; ++i) {
         if(price == heap[i]->price){
             return i;
+        }
+    }
+    return -1;
+}
+
+int binSearch(char *name, int *array, int arraySize, Order **heap) {
+    int low = 0;
+    int high = arraySize - 1;
+    int i;
+    for (i = 0; i < arraySize; ++i) {
+        if(low > high){
+            return -1;
+        }
+
+        int middle = (low + high)/2;
+        if (strcmp(heap[array[middle]]->name, name) == 0){
+            return array[middle];
+        }
+
+        if(strcmp(heap[array[middle]]->name, name) > 0){
+            high = middle - 1;
+        }
+
+        if(strcmp(heap[array[middle]]->name, name) < 0){
+            low = middle + 1;
         }
     }
     return -1;
