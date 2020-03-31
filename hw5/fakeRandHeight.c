@@ -26,18 +26,12 @@
   sequence: 0 1 0 2 0 1 0 3 0 1 0 2 0 1 0  
 
  */
-
-
-
-
 #include "fakeRandHeight.h"
 
 // return the next number in the sequence, recycle the sequence if needed
-int getRandHeight()
-{
-  static int height[] = {0, 1, 2, 2, 2, 3, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, // sequence of height
+int getRandHeight(){
+  static int height[] = {1, 2, 2, 2, 2, 3, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, // sequence of height
                          0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0};
-  
   static int count=0;  // number of times getRandHeight() has been called 
 
   return height[count++ % 31];

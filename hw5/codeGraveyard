@@ -1,0 +1,127 @@
+QuadNode *oldHead = list->head;
+
+        // Create a new list at the top of the skip list between -inf and +inf
+        QuadNode *minNode = createSkipNode(INT_MIN, NULL, NULL, NULL, NULL);
+        new_node = createSkipNode(key, minNode, NULL, NULL, NULL);
+        QuadNode *maxNode = createSkipNode(INT_MAX, new_node, NULL, NULL, NULL);
+        new_node->next = maxNode;
+        minNode->next = new_node;
+
+        if(height - 1 > list->maxHeight){
+            QuadNode *prev_node = list->head;
+            for (int i = 0; i < height; ++i) {
+                //TODO: rename
+                QuadNode *newMinNode = createSkipNode(INT_MIN, NULL, NULL, prev_node, NULL);
+                QuadNode *node = createSkipNode(key, newMinNode, NULL, prev_node->next, NULL);
+                QuadNode *newMaxNode = createSkipNode(INT_MAX, NULL, NULL, prev_node->next->next, NULL);
+                node->next = newMaxNode;
+                newMinNode->next = node;
+
+                prev_node->below = newMinNode;
+                prev_node->next->below = node;
+                prev_node->next->next->below = newMaxNode;
+
+                prev_node = newMinNode;
+            }
+        }
+//        list->head = minNode;
+        //Add its below nodes and TODO:sort them in the below lists
+//        QuadNode *prev_node = list->head;
+        QuadNode* level = minNode;
+        for (int i = height; i >= 0; --i) {
+            QuadNode* node;
+            QuadNode *newMinNode;
+            /*if(list->maxHeight < i - 1){
+                newMinNode = createSkipNode(INT_MIN, NULL, NULL, level, NULL);
+                node = createSkipNode(key, minNode, maxNode, level->next, NULL);
+                QuadNode *newMaxNode = createSkipNode(INT_MAX, node, NULL, level->next->next, NULL);
+                node->next = newMaxNode;
+                newMinNode->next = node;
+
+                level->below = newMinNode;
+                level = newMinNode;
+            } else */if(list->maxHeight == i - 1) {
+                newMinNode = createSkipNode(INT_MIN, NULL, NULL, level, NULL);
+                node = createSkipNode(key, minNode, maxNode, level->next, NULL);
+                QuadNode *newMaxNode = createSkipNode(INT_MAX, node, NULL, level->next->next, NULL);
+                node->next = newMaxNode;
+                newMinNode->next = node;
+
+                level->below = oldHead;
+                level = oldHead;
+            } else if(list->maxHeight == i){
+                // Search through this level to find where this key goes
+                QuadNode* searchNode = level;
+                while (searchNode->next->data < key){
+                    searchNode = searchNode->next;
+                }
+                node = createSkipNode(key, searchNode, searchNode->next, node, NULL);
+                searchNode->next->prev = node;
+                searchNode->next = node;
+
+                //                prev_node->below = oldHead->below;
+                level = searchNode->below;
+            } else {
+                if(level != NULL) {
+                    QuadNode* searchNode = level;
+                    while (searchNode->next->data < key){
+                        searchNode = searchNode->next;
+                    }
+                    node = createSkipNode(key, searchNode, searchNode->next, level->above, NULL);
+                    searchNode->next->prev = node;
+                    searchNode->next = node;
+
+                    level->below = node;
+                    level = searchNode->below;
+                } else {
+                    printf("NULL");
+                }
+            }
+        }
+        list->head = minNode;
+        list->maxHeight = height;
+
+
+
+
+
+        /* QuadNode* topmostNode;
+                if(key < list->head->data){
+                    topmostNode = createSkipNode(key, minNode, list->head, NULL, NULL);
+                    list->head->prev = topmostNode;
+                    list->head = topmostNode;
+                } else {
+                    QuadNode* searchNode = list->head;
+                    while (searchNode->next->data < key){
+                        searchNode = searchNode->next;
+                    }
+                    topmostNode = createSkipNode(key, searchNode, searchNode->next, NULL, NULL);
+                    searchNode->next->prev = topmostNode;
+                    searchNode->next = topmostNode;
+                }
+
+                QuadNode* prev_node = topmostNode;
+                QuadNode* level = list->head->below;
+                for (int i = height - 1; i >= 0; --i) {
+                    QuadNode* node;
+                    if (list->maxHeight > i){
+                        if(level != NULL) {
+                            QuadNode* searchNode = level;
+                            if (level->data < key) {
+                                while (searchNode->next->data < key){
+                                    searchNode = searchNode->next;
+                                }
+                            } else {
+                                while (searchNode->next->data < key){
+                                    searchNode = searchNode->prev;
+                                }
+                            }
+                            node = createSkipNode(key, searchNode, searchNode->next, prev_node, NULL);
+                            searchNode->next->prev = node;
+                            searchNode->next = node;
+                            prev_node->below = node;
+                            level = level->below;
+                        }
+                    }
+                    prev_node = node;
+                }*/

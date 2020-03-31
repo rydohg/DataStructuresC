@@ -36,120 +36,106 @@ void skipListInsert(SkipList *list, int key) {
     QuadNode *new_node = NULL;   // node to be inserted
 
     int height = getRandHeight();
-    QuadNode *minNode = createSkipNode(INT_MIN, NULL, NULL, NULL, NULL);
-    QuadNode *maxNode = createSkipNode(INT_MAX, NULL, NULL, NULL, NULL);
 
     // empty list
     if (list->head == NULL) {
+        QuadNode *minNode = createSkipNode(INT_MIN, NULL, NULL, NULL, NULL);
+        QuadNode *maxNode = createSkipNode(INT_MAX, minNode, NULL, NULL, NULL);
         new_node = createSkipNode(key, minNode, maxNode, NULL, NULL);
-        list->head = new_node;
+
+        minNode->next = new_node;
+        maxNode->prev = new_node;
+
+        list->head = minNode;
 
         QuadNode *prev_node = list->head;
         for (int i = 0; i < height; ++i) {
-            QuadNode *node = createSkipNode(key, minNode, maxNode, prev_node, NULL);
-            node->above = prev_node;
-            prev_node->below = node;
+            //TODO: rename
+            QuadNode *newMinNode = createSkipNode(INT_MIN, NULL, NULL, prev_node, NULL);
+            QuadNode *node = createSkipNode(key, newMinNode, NULL, prev_node->next, NULL);
+            QuadNode *newMaxNode = createSkipNode(INT_MAX, NULL, NULL, prev_node->next->next, NULL);
+            node->next = newMaxNode;
+            newMinNode->next = node;
 
-            prev_node = node;
+            prev_node->below = newMinNode;
+            prev_node->next->below = node;
+            prev_node->next->next->below = newMaxNode;
+
+            prev_node = newMinNode;
         }
         list->maxHeight = height;
     }
-    // Change the head if the height of the new node is greater than the maxHeight in the current skip list
     else if (height > list->maxHeight) {
-        QuadNode *oldHead = list->head;
+        //TODO: Optimize this section
+        QuadNode* oldHead = list->head;
 
-        // Create a new list at the top of the skip list between -inf and +inf
-        new_node = createSkipNode(key, minNode, maxNode, NULL, NULL);
-        list->head = new_node;
-        //Add its below nodes and TODO:sort them in the below lists
-        QuadNode *prev_node = new_node;
-        QuadNode* level = NULL;
-        for (int i = height - 1; i >= 0; --i) {
-            QuadNode* node;
-            if(list->maxHeight < i){
-                node = createSkipNode(key, minNode, maxNode, prev_node, NULL);
-                prev_node->below = node;
-            } else if(list->maxHeight == i){
-                if(oldHead->data > key){
-                    node = createSkipNode(key, minNode, oldHead, prev_node, NULL);
-                    prev_node->below = node;
-                    level = oldHead->below;
-                } else {
-                    // Search through this level to find where this key goes
-                    QuadNode* searchNode = oldHead;
-                    while (searchNode->next->data < key){
-                        searchNode = searchNode->next;
-                    }
-                    node = createSkipNode(key, searchNode, searchNode->next, prev_node, NULL);
-                    searchNode->next->prev = node;
-                    searchNode->next = node;
+        // Copied the code for making the initial skip list so all we need to do is connect it
+        QuadNode *topMinNode = createSkipNode(INT_MIN, NULL, NULL, NULL, NULL);
+        QuadNode *topMaxNode = createSkipNode(INT_MAX, topMinNode, NULL, NULL, NULL);
+        QuadNode *topNewNode = createSkipNode(key, topMinNode, topMaxNode, NULL, NULL);
 
-                    prev_node->below = node;
-                    level = searchNode->below;
-                }
-            } else if (list->maxHeight > i){
-                if(level != NULL) {
-                    QuadNode* searchNode = level;
-                    if (level->data < key) {
-                        while (searchNode->next->data < key){
-                            searchNode = searchNode->next;
-                        }
-                    } else {
-                        while (searchNode->next->data < key){
-                            searchNode = searchNode->prev;
-                        }
-                    }
-                    node = createSkipNode(key, searchNode, searchNode->next, prev_node, NULL);
-                    searchNode->next->prev = node;
-                    searchNode->next = node;
-                    prev_node->below = node;
-                    level = level->below;
-                }
+        topMinNode->next = topNewNode;
+        topMaxNode->prev = topNewNode;
+
+        list->head = topMinNode;
+
+        QuadNode *aboveMinNode = list->head;
+        QuadNode *aboveMaxNode = list->head->next;
+        QuadNode *node = topNewNode;
+        for (int i = 0; i < height - list->maxHeight - 1; ++i) {
+            QuadNode *newMinNode = createSkipNode(INT_MIN, NULL, NULL, aboveMinNode, NULL);
+            node = createSkipNode(key, newMinNode, NULL, aboveMinNode->next, NULL);
+            QuadNode* newMaxNode = createSkipNode(INT_MAX, NULL, NULL, aboveMinNode->next->next, NULL);
+            node->next = newMaxNode;
+            newMinNode->next = node;
+
+            aboveMinNode->below = newMinNode;
+            aboveMinNode->next->below = node;
+            aboveMinNode->next->next->below = newMaxNode;
+
+            aboveMinNode = newMinNode;
+            aboveMaxNode = newMaxNode;
+        }
+
+        // Here we have the 3 above nodes and we're going to link them to the old SkipList
+        aboveMinNode->below = oldHead;
+        QuadNode* searchNode = oldHead;
+        while (key > searchNode->next->data){
+            searchNode = searchNode->next;
+        }
+
+        // Once we find where this goes lets put it there
+        QuadNode* newNode = createSkipNode(key, searchNode, searchNode->next, node, NULL);
+        searchNode->next->prev = newNode;
+        searchNode->next = newNode;
+        node->below = newNode;
+
+        // Adjust the pointers on the min and max nodes
+        aboveMinNode->below = oldHead;
+        QuadNode* tempNode = searchNode;
+        while (tempNode->next != NULL){
+            tempNode = tempNode->next;
+        }
+        aboveMaxNode->below = tempNode;
+
+        // Add and link up the new node in the rest of the lists below
+        // We start looking below the node we just inserted after
+        QuadNode* aboveNode;
+        QuadNode* currentLevel = searchNode->below;
+        for (int j = list->maxHeight - 1; j >= 0; --j) {
+            while (key > currentLevel->next->data){
+                currentLevel = currentLevel->next;
             }
-            prev_node = node;
+            aboveNode = newNode;
+            newNode = createSkipNode(key, currentLevel, currentLevel->next, aboveNode, NULL);
+            currentLevel->next->prev = newNode;
+            currentLevel->next = newNode;
+            aboveNode->below = newNode;
+
+            //Go down now
+            currentLevel = currentLevel->below;
         }
         list->maxHeight = height;
-    } else if (height == list->maxHeight){
-        QuadNode* topmostNode;
-        if(key < list->head->data){
-            topmostNode = createSkipNode(key, minNode, list->head, NULL, NULL);
-            list->head->prev = topmostNode;
-            list->head = topmostNode;
-        } else {
-            QuadNode* searchNode = list->head;
-            while (searchNode->next->data < key){
-                searchNode = searchNode->next;
-            }
-            topmostNode = createSkipNode(key, searchNode, searchNode->next, NULL, NULL);
-            searchNode->next->prev = topmostNode;
-            searchNode->next = topmostNode;
-        }
-
-        QuadNode* prev_node = topmostNode;
-        QuadNode* level = list->head->below;
-        for (int i = height - 1; i >= 0; --i) {
-            QuadNode* node;
-            if (list->maxHeight > i){
-                if(level != NULL) {
-                    QuadNode* searchNode = level;
-                    if (level->data < key) {
-                        while (searchNode->next->data < key){
-                            searchNode = searchNode->next;
-                        }
-                    } else {
-                        while (searchNode->next->data < key){
-                            searchNode = searchNode->prev;
-                        }
-                    }
-                    node = createSkipNode(key, searchNode, searchNode->next, prev_node, NULL);
-                    searchNode->next->prev = node;
-                    searchNode->next = node;
-                    prev_node->below = node;
-                    level = level->below;
-                }
-            }
-            prev_node = node;
-        }
     }
 }
 
@@ -162,9 +148,9 @@ void printSkipList(SkipList *list) {
         QuadNode* levelTempNode = tempNode;
 
         // Move levelTempNode all the way to the left
-        while (levelTempNode->prev->data != INT_MIN){
+        /*while (levelTempNode->prev->data != INT_MIN){
             levelTempNode = levelTempNode->prev;
-        }
+        }*/
         while (levelTempNode->next != NULL){
             printf("%d ", levelTempNode->data);
             levelTempNode = levelTempNode->next;
@@ -185,10 +171,10 @@ int main(int argc, char *argv[]) {
 
     skipListInsert(&list, 1);
     skipListInsert(&list, 2);
-    skipListInsert(&list, 3);
+/*    skipListInsert(&list, 3);
     skipListInsert(&list, 4);
     skipListInsert(&list, 5);
-    skipListInsert(&list, 6);
+    skipListInsert(&list, 6);*/
     printSkipList(&list);
 }
 #endif
