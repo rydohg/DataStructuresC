@@ -80,7 +80,7 @@ void skipListInsert(SkipList *list, int key) {
         list->head = topMinNode;
 
         QuadNode *aboveMinNode = list->head;
-        QuadNode *aboveMaxNode = list->head->next;
+        QuadNode *aboveMaxNode = list->head->next->next;
         QuadNode *node = topNewNode;
         for (int i = 0; i < height - list->maxHeight - 1; ++i) {
             QuadNode *newMinNode = createSkipNode(INT_MIN, NULL, NULL, aboveMinNode, NULL);
@@ -136,6 +136,51 @@ void skipListInsert(SkipList *list, int key) {
             currentLevel = currentLevel->below;
         }
         list->maxHeight = height;
+    } else if (height == list->maxHeight){
+        QuadNode* searchNode = list->head;
+        while (key > searchNode->next->data){
+            searchNode = searchNode->next;
+        }
+        QuadNode* newNode = createSkipNode(key, searchNode, searchNode->next,NULL, NULL);
+        searchNode->next->prev = newNode;
+        searchNode->next = newNode;
+
+        QuadNode* aboveNode = newNode;
+        QuadNode* currentLevel = searchNode->below;
+        for (int j = list->maxHeight - 1; j >= 0; --j) {
+            while (key > currentLevel->next->data){
+                currentLevel = currentLevel->next;
+            }
+            newNode = createSkipNode(key, currentLevel, currentLevel->next, aboveNode, NULL);
+            currentLevel->next->prev = newNode;
+            currentLevel->next = newNode;
+            aboveNode->below = newNode;
+
+            //Go down now
+            aboveNode = newNode;
+            currentLevel = currentLevel->below;
+        }
+    } else {
+        QuadNode* aboveNode = NULL;
+        QuadNode* currentLevel = list->head;
+        for (int i = 0; i < list->maxHeight - height; ++i) {
+            currentLevel = currentLevel->below;
+        }
+        for (int j = height; j >= 0; --j) {
+            while (key > currentLevel->next->data){
+                currentLevel = currentLevel->next;
+            }
+            QuadNode* newNode = createSkipNode(key, currentLevel, currentLevel->next, aboveNode, NULL);
+            currentLevel->next->prev = newNode;
+            currentLevel->next = newNode;
+            if(aboveNode != NULL){
+                aboveNode->below = newNode;
+            }
+
+            //Go down now
+            aboveNode = newNode;
+            currentLevel = currentLevel->below;
+        }
     }
 }
 
@@ -146,13 +191,10 @@ void printSkipList(SkipList *list) {
     while (tempNode != NULL){
         printf("Level %d: ", counter);
         QuadNode* levelTempNode = tempNode;
-
-        // Move levelTempNode all the way to the left
-        /*while (levelTempNode->prev->data != INT_MIN){
-            levelTempNode = levelTempNode->prev;
-        }*/
         while (levelTempNode->next != NULL){
-            printf("%d ", levelTempNode->data);
+            if(levelTempNode->data != INT_MIN && levelTempNode->data != INT_MAX){
+                printf("%d ", levelTempNode->data);
+            }
             levelTempNode = levelTempNode->next;
         }
         printf("\n");
@@ -163,18 +205,55 @@ void printSkipList(SkipList *list) {
 
 // uncomment #define DEBUG near the top
 #ifdef DEBUG
+void testSkipList(SkipList* list){
+    QuadNode* bottomMostNode = list->head;
+    for (int i = 0; i < list->maxHeight; ++i) {
+        QuadNode* leftRightSearchNode = bottomMostNode;
+        while (leftRightSearchNode->next != NULL){
+            if(leftRightSearchNode->next->prev != leftRightSearchNode){
+                printf("next/prev link broken\n");
+            }
+            leftRightSearchNode = leftRightSearchNode->next;
+        }
+        bottomMostNode = bottomMostNode->below;
+    }
+    int height = 0;
+    QuadNode* leftRightSearchNode = bottomMostNode;
+    while (leftRightSearchNode != NULL){
+        //This doesn't account for when a above link is NULL when it shouldn't be
+        QuadNode* upDownSearchNode = leftRightSearchNode;
+        while (upDownSearchNode->above != NULL){
+            if(upDownSearchNode->above->below != upDownSearchNode){
+                printf("Above/below link broken\n");
+            }
+            height++;
+            upDownSearchNode = upDownSearchNode->above;
+        }
+        height = 0;
+        leftRightSearchNode = leftRightSearchNode->next;
+    }
+}
 
 int main(int argc, char *argv[]) {
     SkipList list;
     list.head = NULL;
     list.maxHeight = 0;
 
-    skipListInsert(&list, 1);
-    skipListInsert(&list, 2);
-/*    skipListInsert(&list, 3);
-    skipListInsert(&list, 4);
-    skipListInsert(&list, 5);
-    skipListInsert(&list, 6);*/
+    for (int i = 0; i < 7; ++i) {
+        skipListInsert(&list, i);
+    }
     printSkipList(&list);
+    testSkipList(&list);
+
+    printf("List 2\n");
+    SkipList list2;
+    list2.head = NULL;
+    list2.maxHeight = 0;
+
+    for (int j = 7; j >= 0; --j) {
+        skipListInsert(&list2, j);
+    }
+    printSkipList(&list2);
+    testSkipList(&list2);
 }
 #endif
