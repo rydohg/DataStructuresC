@@ -15,7 +15,8 @@ typedef struct {
 
 void skipListInsert(SkipList *list,  int key);
 void skipListDelete(SkipList *list,  int key);
-QuadNode* skipListFind(SkipList *list, int key);
+QuadNode* skipListFind(QuadNode *list, int key);
+QuadNode* skipListSubmap(SkipList *list, int key1, int key2);
 void printSkipList(SkipList *list);
 
 #endif

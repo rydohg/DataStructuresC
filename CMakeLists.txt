@@ -20,7 +20,7 @@ project(hw4extra)
 add_executable(hw4extra hw4/hw4_extra.c)
 
 project(hw5)
-add_executable(hw5 hw5/hw5.c hw5/hw5.h hw5/fakeRandHeight.c hw5/fakeRandHeight.h)
+add_executable(hw5 hw5/hw5.c hw5/hw5.h hw5/fakeRandHeight.c hw5/fakeRandHeight.h hw5/realRandHeight.h)
 
 project(skiplist)
 add_executable(skiplist hw5/skipList.c hw5/skipList.h hw5/fakeRandHeight.h hw5/fakeRandHeight.c)

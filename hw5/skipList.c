@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zconf.h>
+#include <time.h>
 
 #include "skipList.h"
 #include "fakeRandHeight.h"
-
 #define DEBUG
 
 // create and return a node with data and previous/next nodes
@@ -53,7 +53,7 @@ void skipListInsert(SkipList *list, int key) {
             //TODO: rename
             QuadNode *newMinNode = createSkipNode(INT_MIN, NULL, NULL, prev_node, NULL);
             QuadNode *node = createSkipNode(key, newMinNode, NULL, prev_node->next, NULL);
-            QuadNode *newMaxNode = createSkipNode(INT_MAX, NULL, NULL, prev_node->next->next, NULL);
+            QuadNode *newMaxNode = createSkipNode(INT_MAX, node, NULL, prev_node->next->next, NULL);
             node->next = newMaxNode;
             newMinNode->next = node;
 
@@ -85,7 +85,7 @@ void skipListInsert(SkipList *list, int key) {
         for (int i = 0; i < height - list->maxHeight - 1; ++i) {
             QuadNode *newMinNode = createSkipNode(INT_MIN, NULL, NULL, aboveMinNode, NULL);
             node = createSkipNode(key, newMinNode, NULL, aboveMinNode->next, NULL);
-            QuadNode* newMaxNode = createSkipNode(INT_MAX, NULL, NULL, aboveMinNode->next->next, NULL);
+            QuadNode* newMaxNode = createSkipNode(INT_MAX, node, NULL, aboveMinNode->next->next, NULL);
             node->next = newMaxNode;
             newMinNode->next = node;
 
@@ -117,6 +117,8 @@ void skipListInsert(SkipList *list, int key) {
             tempNode = tempNode->next;
         }
         aboveMaxNode->below = tempNode;
+        oldHead->above = aboveMinNode;
+        tempNode->above = aboveMaxNode;
 
         // Add and link up the new node in the rest of the lists below
         // We start looking below the node we just inserted after
@@ -184,7 +186,96 @@ void skipListInsert(SkipList *list, int key) {
     }
 }
 
+QuadNode* skipListFind(QuadNode* list, int key){
+    QuadNode* searchNode = list;
+    while (searchNode->next != NULL){
+        if(key == searchNode->next->data){
+            return searchNode->next;
+        }
+        if(key < searchNode->next->data){
+            if(searchNode->below != NULL){
+                searchNode = searchNode->below;
+                continue;
+            } else {
+                //Break and return the current/closest node if the key isn't in the list
+                break;
+            }
+        }
+        searchNode = searchNode->next;
+    }
+    return searchNode;
+}
+
+void skipListDelete(SkipList* list, int key){
+    QuadNode* nodeToDelete = skipListFind(list->head, key);
+    // Return if it isn't in the list
+    if(nodeToDelete->data != key){
+        return;
+    }
+    while (nodeToDelete != NULL){
+        // Delete level if the node we're deleting is its only element
+        if(nodeToDelete->prev->data == INT_MIN && nodeToDelete->next->data == INT_MAX){
+            // If this is the last node in the last list, delete the list
+            if(nodeToDelete->below == NULL){
+                free(nodeToDelete->prev);
+                free(nodeToDelete->next);
+                free(nodeToDelete);
+                list->head = NULL;
+                list->maxHeight = 0;
+                return;
+            }
+            nodeToDelete->prev->below->above = NULL;
+            nodeToDelete->next->below->above = NULL;
+
+            list->head = nodeToDelete->prev->below;
+            QuadNode* belowNode = nodeToDelete->below;
+            free(nodeToDelete->prev);
+            free(nodeToDelete->next);
+            free(nodeToDelete);
+            nodeToDelete = belowNode;
+            list->maxHeight--;
+            continue;
+        }
+        nodeToDelete->prev->next = nodeToDelete->next;
+        nodeToDelete->next->prev = nodeToDelete->prev;
+        QuadNode* belowNode = nodeToDelete->below;
+        free(nodeToDelete);
+        nodeToDelete = belowNode;
+    }
+}
+
+QuadNode* skipListSubmap(SkipList *list, int key1, int key2){
+    QuadNode* returnList = NULL;
+    QuadNode* bottomMinNode = list->head;
+    while (bottomMinNode->below != NULL){
+        bottomMinNode = bottomMinNode->below;
+    }
+
+    //Add the nodes between k1 and k2 to a list of QuadNodes without nodes above or below them. Essentially a doubly linked list
+    QuadNode* searchNode = bottomMinNode;
+    while (searchNode->next != NULL && searchNode->data <= key2){
+        QuadNode* returnListTempNode = returnList;
+        if(searchNode->data >= key1){
+            QuadNode* newNode = createSkipNode(searchNode->data, returnListTempNode, NULL, NULL, NULL);
+            if(returnList == NULL){
+                returnList = newNode;
+            } else {
+                while (returnListTempNode->next != NULL){
+                    returnListTempNode = returnListTempNode->next;
+                }
+                returnListTempNode->next = newNode;
+            }
+        }
+        searchNode = searchNode->next;
+    }
+    return returnList;
+}
+
 void printSkipList(SkipList *list) {
+    if(list->head == NULL){
+        printf("SkipList is NULL\n");
+        return;
+    }
     QuadNode *tempNode = list->head; // current node
 
     int counter = list->maxHeight;
@@ -205,7 +296,7 @@ void printSkipList(SkipList *list) {
 
 // uncomment #define DEBUG near the top
 #ifdef DEBUG
-void testSkipList(SkipList* list){
+void testSkipListInsert(SkipList* list){
     QuadNode* bottomMostNode = list->head;
     for (int i = 0; i < list->maxHeight; ++i) {
         QuadNode* leftRightSearchNode = bottomMostNode;
@@ -224,7 +315,7 @@ void testSkipList(SkipList* list){
         QuadNode* upDownSearchNode = leftRightSearchNode;
         while (upDownSearchNode->above != NULL){
             if(upDownSearchNode->above->below != upDownSearchNode){
-                printf("Above/below link broken\n");
+                printf("Above/below link broken. Height: %d Data: %d\n", height, upDownSearchNode->data);
             }
             height++;
             upDownSearchNode = upDownSearchNode->above;
@@ -234,26 +325,64 @@ void testSkipList(SkipList* list){
     }
 }
 
-int main(int argc, char *argv[]) {
-    SkipList list;
-    list.head = NULL;
-    list.maxHeight = 0;
-
-    for (int i = 0; i < 7; ++i) {
-        skipListInsert(&list, i);
+void testSkipListFind(SkipList* list, int length){
+    for (int i = 0; i < length; ++i) {
+        QuadNode* findNode = skipListFind(list->head, i);
+        if(findNode->data != i || findNode->above != NULL){
+            printf("Didn't find right node");
+        }
     }
-    printSkipList(&list);
-    testSkipList(&list);
+}
 
-    printf("List 2\n");
+int main(int argc, char *argv[]) {
+    time_t time_struct;
+    srand((unsigned) time(&time_struct));
+
+/*    for (int j = 0; j < 1; ++j) {
+        SkipList list;
+        list.head = NULL;
+        list.maxHeight = 0;
+
+        for (int i = 0; i < 31; ++i) {
+            skipListInsert(&list, i);
+        }
+//        printf("\n");
+        printSkipList(&list);
+        testSkipListInsert(&list);
+        testSkipListFind(&list, 31);
+    }*/
+
+//    printf("List 2\n");
     SkipList list2;
     list2.head = NULL;
     list2.maxHeight = 0;
+    skipListInsert(&list2, 1);
+    skipListInsert(&list2, 2);
+    skipListInsert(&list2, 3);
+    skipListInsert(&list2, 4);
+    skipListInsert(&list2, 5);
+    skipListInsert(&list2, 6);
+    skipListInsert(&list2, 7);
+    skipListDelete(&list2, 3);
 
-    for (int j = 7; j >= 0; --j) {
-        skipListInsert(&list2, j);
+    QuadNode* submap = skipListSubmap(&list2, 2, 7);
+    QuadNode* printNode = submap;
+    while (printNode != NULL){
+        printf("%d ", printNode->data);
+        printNode = printNode->next;
     }
-    printSkipList(&list2);
-    testSkipList(&list2);
+    /*for (int i = 0; i < 50; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            skipListInsert(&list2, j);
+            testSkipListInsert(&list2);
+        }
+
+        for (int j = 7; j >= 0; --j) {
+            skipListDelete(&list2, j);
+            testSkipListInsert(&list2);
+            //This tries to find all nodes before j
+            testSkipListFind(&list2, j);
+        }
+    }*/
 }
 #endif
