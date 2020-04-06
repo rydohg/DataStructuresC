@@ -1,6 +1,5 @@
 AddActivity 01110634 Running
 AddActivity 01110658 Walking
-AddActivity 01110658 BetterCauseAnErrorActivity
 AddActivity 01110747 Breakfast
 AddActivity 01111239 Lunch
 AddActivity 01111848 Dinner
@@ -10,8 +9,6 @@ AddActivity 01121602 Teatime
 AddActivity 01122342 Sleep
 AddActivity 01131023 Walking
 RemoveActivity 01131023
-RemoveActivity 01131024
 GetActivity 01121602
 GetActivitiesBetweenTimes 01110600 01110700
-GetActivitiesFromEarlierInTheDay 01110000
 PrintSkipList

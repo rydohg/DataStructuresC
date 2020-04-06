@@ -74,13 +74,13 @@ void readInput(char* filename, SkipList* list){
         strcpy(firstToken, token);
 
         //Remove newlines. I use this because it eliminates newlines anywhere in the string instead of just the end
-        firstToken[strcspn(firstToken, "\n")] = 0;
+        firstToken[strcspn(firstToken, "\n\r")] = 0;
         printf("%s", firstToken);
 
         // Move strtok to the next token and remove newlines
         token = strtok(NULL, " ");
         if(token != NULL){
-            token[strcspn(token, "\n")] = 0;
+            token[strcspn(token, "\n\r")] = 0;
         }
 
         if(firstToken[0] == 'P'){ //PrintSkipList
@@ -98,7 +98,7 @@ void readInput(char* filename, SkipList* list){
 
                 char* activityName = malloc(strlen(token) + 1);
                 strcpy(activityName, token);
-                activityName[strcspn(activityName, "\n")] = 0;
+                activityName[strcspn(activityName, "\n\r")] = 0;
                 printf(" %s", activityName);
 
                 addActivity(list, createActivity(activityName, time));
@@ -121,10 +121,10 @@ void readInput(char* filename, SkipList* list){
                 activities = getActivitiesForOneDay(list, time1);
             } else if (firstToken[14] == 'r'){ //GetActivitiesFromEarlierInTheDay
                 activities = getActivitiesEarlier(list, time1);
-            } else {
+            } else { //GetActivitiesBetweenTimes
                 token = strtok(NULL, " ");
                 int time2 = atoi(token);
-                token[strcspn(token, "\n")] = 0;
+                token[strcspn(token, "\n\r")] = 0;
                 printf(" %s", token);
 
                 activities = getActivitiesBetweenTimes(list, time1, time2);
@@ -178,7 +178,7 @@ QuadNode *createSkipNode(Activity* data, QuadNode *prev, QuadNode *next, QuadNod
     return newNode;
 }
 
-void createNodesBelow(SkipList* list, QuadNode* startingNode, QuadNode* aboveNode, int key, Activity* activity, int numberOfLevels){
+void createNodesAtLevelAndBelow(SkipList* list, QuadNode* startingNode, QuadNode* aboveNode, int key, Activity* activity, int numberOfLevels){
     QuadNode* currentLevel = startingNode;
     int j;
     for (j = numberOfLevels; j >= 0; --j) {
@@ -199,7 +199,6 @@ void createNodesBelow(SkipList* list, QuadNode* startingNode, QuadNode* aboveNod
 
 void addActivity(SkipList *list, Activity* activity) {
     int key = activity->time;
-
     int height = getRandHeight();
 
     Activity* minData = malloc(sizeof(Activity));
@@ -209,8 +208,9 @@ void addActivity(SkipList *list, Activity* activity) {
     maxData->time = INT_MAX;
     maxData->activityName = NULL;
 
-    // empty list
+    // Initialize list
     if (list->head == NULL) {
+        // Create top level of the SkipList
         QuadNode *minNode = createSkipNode(minData, NULL, NULL, NULL, NULL);
         QuadNode *maxNode = createSkipNode(maxData, minNode, NULL, NULL, NULL);
         QuadNode* newNode = createSkipNode(activity, minNode, maxNode, NULL, NULL);
@@ -220,21 +220,21 @@ void addActivity(SkipList *list, Activity* activity) {
 
         list->head = minNode;
 
-        QuadNode *prev_node = list->head;
+        // Create all the levels below the top level
+        QuadNode *prevNode = list->head;
         int i;
         for (i = 0; i < height; ++i) {
-            //TODO: rename
-            QuadNode *newMinNode = createSkipNode(minData, NULL, NULL, prev_node, NULL);
-            QuadNode *node = createSkipNode(activity, newMinNode, NULL, prev_node->next, NULL);
-            QuadNode *newMaxNode = createSkipNode(maxData, node, NULL, prev_node->next->next, NULL);
+            QuadNode *newMinNode = createSkipNode(minData, NULL, NULL, prevNode, NULL);
+            QuadNode *node = createSkipNode(activity, newMinNode, NULL, prevNode->next, NULL);
+            QuadNode *newMaxNode = createSkipNode(maxData, node, NULL, prevNode->next->next, NULL);
             node->next = newMaxNode;
             newMinNode->next = node;
 
-            prev_node->below = newMinNode;
-            prev_node->next->below = node;
-            prev_node->next->next->below = newMaxNode;
+            prevNode->below = newMinNode;
+            prevNode->next->below = node;
+            prevNode->next->next->below = newMaxNode;
 
-            prev_node = newMinNode;
+            prevNode = newMinNode;
         }
         list->maxHeight = height;
     }
@@ -242,6 +242,7 @@ void addActivity(SkipList *list, Activity* activity) {
         QuadNode* oldHead = list->head;
 
         // Copied the code for making the initial skip list so all we need to do is connect it
+        // Create top level
         QuadNode *topMinNode = createSkipNode(minData, NULL, NULL, NULL, NULL);
         QuadNode *topMaxNode = createSkipNode(maxData, topMinNode, NULL, NULL, NULL);
         QuadNode *topNewNode = createSkipNode(activity, topMinNode, topMaxNode, NULL, NULL);
@@ -251,6 +252,7 @@ void addActivity(SkipList *list, Activity* activity) {
 
         list->head = topMinNode;
 
+        // Create and link the levels between the new maxHeight and the old maxHeight
         QuadNode *aboveMinNode = list->head;
         QuadNode *aboveMaxNode = list->head->next->next;
         QuadNode *node = topNewNode;
@@ -295,51 +297,11 @@ void addActivity(SkipList *list, Activity* activity) {
 
         // Add and link up the new node in the rest of the lists below
         // We start looking below the node we just inserted after
-        createNodesBelow(list, searchNode->below, newNode, key, activity, list->maxHeight - 1);
-        /*QuadNode* aboveNode;
-        QuadNode* currentLevel = searchNode->below;
-        int j;
-        for (j = list->maxHeight - 1; j >= 0; --j) {
-            while (key > currentLevel->next->data->time){
-                currentLevel = currentLevel->next;
-            }
-            aboveNode = newNode;
-            newNode = createSkipNode(activity, currentLevel, currentLevel->next, aboveNode, NULL);
-            currentLevel->next->prev = newNode;
-            currentLevel->next = newNode;
-            aboveNode->below = newNode;
-
-            // Go down now
-            currentLevel = currentLevel->below;
-        }*/
+        createNodesAtLevelAndBelow(list, searchNode->below, newNode, key, activity, list->maxHeight - 1);
         list->maxHeight = height;
     } else if (height == list->maxHeight){
-        QuadNode* searchNode = list->head;
-        while (key > searchNode->next->data->time){
-            searchNode = searchNode->next;
-        }
-        QuadNode* newNode = createSkipNode(activity, searchNode, searchNode->next,NULL, NULL);
-        searchNode->next->prev = newNode;
-        searchNode->next = newNode;
-
-        createNodesBelow(list, searchNode->below, newNode, key, activity, list->maxHeight - 1);
-        /*QuadNode* aboveNode = newNode;
-        QuadNode* currentLevel = searchNode->below;
-        int j;
-        for (j = list->maxHeight - 1; j >= 0; --j) {
-            // Find the new node's location in this level and add it
-            while (key > currentLevel->next->data->time){
-                currentLevel = currentLevel->next;
-            }
-            newNode = createSkipNode(activity, currentLevel, currentLevel->next, aboveNode, NULL);
-            currentLevel->next->prev = newNode;
-            currentLevel->next = newNode;
-            aboveNode->below = newNode;
-
-            // Go down now
-            aboveNode = newNode;
-            currentLevel = currentLevel->below;
-        }*/
+        //Insert the new node on the current level and build the ones below it
+        createNodesAtLevelAndBelow(list, list->head, NULL, key, activity, list->maxHeight);
     } else {
         // If the new node is less than the maxHeight
         QuadNode* aboveNode = NULL;
@@ -348,23 +310,7 @@ void addActivity(SkipList *list, Activity* activity) {
         for (i = 0; i < list->maxHeight - height; ++i) {
             currentLevel = currentLevel->below;
         }
-        createNodesBelow(list, currentLevel, aboveNode, key, activity, height);
-        /*int j;
-        for (j = height; j >= 0; --j) {
-            while (key > currentLevel->next->data->time){
-                currentLevel = currentLevel->next;
-            }
-            QuadNode* newNode = createSkipNode(activity, currentLevel, currentLevel->next, aboveNode, NULL);
-            currentLevel->next->prev = newNode;
-            currentLevel->next = newNode;
-            if(aboveNode != NULL){
-                aboveNode->below = newNode;
-            }
-
-            // Go down now
-            aboveNode = newNode;
-            currentLevel = currentLevel->below;
-        }*/
+        createNodesAtLevelAndBelow(list, currentLevel, aboveNode, key, activity, height);
     }
 }
 
@@ -372,6 +318,7 @@ QuadNode* getActivity(QuadNode* list, int key){
     if(list == NULL){
         return NULL;
     }
+    // Search left to right and drop down if not in the current list
     QuadNode* searchNode = list;
     while (searchNode->next != NULL){
         if(key == searchNode->next->data->time){
@@ -382,7 +329,8 @@ QuadNode* getActivity(QuadNode* list, int key){
                 searchNode = searchNode->below;
                 continue;
             } else {
-                //Break and return the current/closest node if the key isn't in the list
+                // Break and return the current/closest node if the key isn't in the list
+                // This makes this function return the floorEntry of key if it isn't found
                 break;
             }
         }
@@ -394,7 +342,7 @@ QuadNode* getActivity(QuadNode* list, int key){
 void removeActivity(SkipList* list, int key){
     QuadNode* nodeToDelete = getActivity(list->head, key);
     // Return if it isn't in the list
-    if(nodeToDelete->data->time != key){
+    if(nodeToDelete == NULL || nodeToDelete->data->time != key){
         return;
     }
     while (nodeToDelete != NULL){
@@ -423,6 +371,7 @@ void removeActivity(SkipList* list, int key){
             list->maxHeight--;
             continue;
         }
+        // Otherwise just remove the node from the current level
         nodeToDelete->prev->next = nodeToDelete->next;
         nodeToDelete->next->prev = nodeToDelete->prev;
         QuadNode* belowNode = nodeToDelete->below;
@@ -444,7 +393,7 @@ QuadNode* getActivitiesBetweenTimes(SkipList *list, int key1, int key2){
         bottomMinNode = bottomMinNode->below;
     }
 
-    //Add the nodes between k1 and k2 to a doubly linked list of QuadNodes without nodes above or below them.
+    // Add the nodes between k1 and k2 to a doubly linked list of QuadNodes without nodes above or below them.
     QuadNode* searchNode = bottomMinNode;
     while (searchNode->next != NULL && searchNode->data->time <= key2){
         QuadNode* returnListTempNode = returnList;
@@ -484,10 +433,12 @@ void printSkipList(SkipList *list) {
         printf("(S0) empty\n");
         return;
     }
-    QuadNode *tempNode = list->head; // current node
 
+    QuadNode *tempNode = list->head;
     // To keep track of the level we're on
     int counter = list->maxHeight;
+
+    // Print each level like "(S0) time1:activity1 ...."
     printf("(S%d) empty\n", counter + 1);
     while (tempNode != NULL){
         printf("(S%d)", counter);
