@@ -20,16 +20,20 @@ typedef struct quadNode {
     struct quadNode *prev, *next, *above, *below;
 } QuadNode;
 
-// A struct for keeping track of a skip list's head and height
+// A struct for keeping track of a SkipList's head and height
 typedef struct {
     QuadNode   *head;
     int maxHeight;
 } SkipList;
 
-void readInput(char* filename);
+void readInput(char* filename, SkipList* list);
 Activity* createActivity(char*, int time);
-//SkipList functions
 QuadNode *createSkipNode(Activity* data, QuadNode *prev, QuadNode *next, QuadNode *above, QuadNode *below);
-void skipListInsert(SkipList* list, Activity* activity);
+void addActivity(SkipList* list, Activity* activity);
+void removeActivity(SkipList *list,  int key);
+QuadNode* getActivity(QuadNode *list, int key);
+QuadNode* getActivitiesBetweenTimes(SkipList *list, int key1, int key2);
+QuadNode* getActivitiesForOneDay(SkipList *list, int time);
+QuadNode* getActivitiesEarlier(SkipList* list, int time);
 void printSkipList(SkipList* list);
 #endif //HW5_HW5_H

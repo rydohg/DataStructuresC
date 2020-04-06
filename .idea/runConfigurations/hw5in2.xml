@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="hw5in2" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="../hw5/testInput2.txt" PASS_PARENT_ENVS_2="true" PROJECT_NAME="skiplist" TARGET_NAME="hw5" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="skiplist" RUN_TARGET_NAME="hw5">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

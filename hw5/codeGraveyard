@@ -125,3 +125,33 @@ QuadNode *oldHead = list->head;
                     }
                     prev_node = node;
                 }*/
+
+else if(firstToken[14] == 'o'){ //GetActivitiesForOneDay
+            int time = atoi(token);
+            printf(" %s", token);
+
+            QuadNode* activities = getActivitiesForOneDay(list, time);
+            QuadNode* printNode = activities;
+            if(printNode == NULL){
+                printf(" none");
+            } else {
+                while (printNode != NULL){
+                    printf(" %08d:%s", printNode->data->time, printNode->data->activityName);
+                    printNode = printNode->next;
+                }
+            }
+        } else if(firstToken[14] == 'r'){ //GetActivitiesFromEarlierInTheDay
+            int time = atoi(token);
+            printf(" %s", token);
+
+            QuadNode* earlierActivities = getActivitiesEarlier(list, time);
+            QuadNode* printNode = earlierActivities;
+            if(printNode == NULL){
+                printf(" none");
+            } else {
+                while (printNode != NULL){
+                    printf(" %08d:%s", printNode->data->time, printNode->data->activityName);
+                    printNode = printNode->next;
+                }
+            }
+        }
