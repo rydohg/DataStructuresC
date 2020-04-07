@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include <time.h>
 #include "fakeRandHeight.h"
 
 // Data struct
@@ -350,7 +351,6 @@ void removeActivity(SkipList* list, int key){
         if(nodeToDelete->prev->data->time == INT_MIN && nodeToDelete->next->data->time == INT_MAX){
             // If this is the last node in the last list, delete the list
             if(nodeToDelete->below == NULL){
-                free(nodeToDelete->data->activityName);
                 free(nodeToDelete->data);
                 free(nodeToDelete->prev);
                 free(nodeToDelete->next);

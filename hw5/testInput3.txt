@@ -1,38 +1,41 @@
-AddActivity 01110634 Running
-AddActivity 01110658 Walking
-AddActivity 01110747 Breakfast
-AddActivity 01111239 Lunch
-AddActivity 01111848 Dinner
-AddActivity 01120621 Biking
-AddActivity 01120944 Work
-AddActivity 01121602 Teatime
-AddActivity 01122342 Sleep
-AddActivity 01131023 Walking
-AddActivity 01131134 Work
-AddActivity 01131258 Lunch
-AddActivity 01131447 Subway
-AddActivity 01131639 Meeting
-AddActivity 01141748 Sport
-AddActivity 01142021 Study
-RemoveActivity 01110634
-RemoveActivity 01110658
-RemoveActivity 01110747
-RemoveActivity 01111239
-RemoveActivity 01111848
-RemoveActivity 01120621
-RemoveActivity 01120944
-RemoveActivity 01121602
-RemoveActivity 01122342
-RemoveActivity 01131023
-RemoveActivity 01131134
-RemoveActivity 01131258
-RemoveActivity 01131447
-RemoveActivity 01131639
-RemoveActivity 01141748
-RemoveActivity 01142021
-RemoveActivity 01142021
-GetActivity 01120411
-GetActivitiesBetweenTimes 01110600 01110800
-GetActivitiesForOneDay 0114
-GetActivitiesFromEarlierInTheDay 01100000
+AddActivity 1010000 Test
+AddActivity 1010001 Test
+AddActivity 1011230 Test
+AddActivity 1012359 Test
+AddActivity 1020000 Test
+AddActivity 1020645 Test
+AddActivity 1021159 Test
+AddActivity 1021200 Test
+AddActivity 1021751 Test
+GetActivitiesFromEarlierInTheDay 1021159
+GetActivitiesBetweenTimes 1021159 1021200
+GetActivitiesBetweenTimes 1010002 1021753
+GetActivitiesForOneDay 101
+GetActivitiesForOneDay 102
+RemoveActivity 1012359
+RemoveActivity 1020000
+RemoveActivity 1020645
+PrintSkipList
+GetActivitiesFromEarlierInTheDay 1021159
+GetActivitiesBetweenTimes 1021159 1021200
+GetActivitiesBetweenTimes 1010002 1021753
+GetActivitiesForOneDay 101
+GetActivitiesForOneDay 102
+AddActivity 1012359 Test
+AddActivity 1020000 Test1234
+GetActivitiesFromEarlierInTheDay 1021159
+GetActivitiesBetweenTimes 1021159 1021200
+GetActivitiesBetweenTimes 1010000 1021753
+GetActivitiesForOneDay 101
+GetActivitiesForOneDay 102
+GetActivity 1020000
+GetActivity 1020001
+GetActivity 1012359
+GetActivity 1012358
+GetActivity 0
+GetActivity 22222222
+RemoveActivity 0
+RemoveActivity 1012359
+RemoveActivity 1012359
+RemoveActivity 22222222
 PrintSkipList
