@@ -24,3 +24,6 @@ add_executable(hw5 hw5/hw5.c hw5/hw5.h hw5/fakeRandHeight.c hw5/fakeRandHeight.h
 
 project(skiplist)
 add_executable(skiplist hw5/skipList.c hw5/skipList.h hw5/fakeRandHeight.h hw5/fakeRandHeight.c)
+
+project(hw6)
+add_executable(hw6 hw6/hw6.c hw6/hw6.h)
