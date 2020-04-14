@@ -6,20 +6,26 @@
 #include <stdio.h>
 
 // Adjacency list. Each node has a linked list of adjacent nodes.
-typedef struct adjNode {
-    int adjNodeIndex;
-    struct adjNode* next;
-} AdjacentNode;
+typedef struct nodeList {
+    int nodeIndex;
+    struct nodeList* next;
+} NodeList;
 
 typedef struct node {
     char data;
-    AdjacentNode* adjNodes;
+    NodeList* adjNodes;
 } GraphNode;
 
 typedef struct {
     GraphNode** graphArray;
     int rowLength, colHeight;
     int emptyIndex;
+    int tronIndex;
 } Graph;
+
+typedef struct {
+    int* queue;
+    int front, back, arraySize, queueSize;
+} Queue;
 
 #endif //HW6_HW6_H
