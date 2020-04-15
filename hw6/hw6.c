@@ -11,17 +11,23 @@
 void readMazeFromFile(char* filename, Graph* graph);
 void readInput(Graph* graph);
 void addGraphNode(char data, Graph *graph);
-void addAdjNode(GraphNode* node, int adjNodeIndex);
+void addNodeToList(NodeList** list, int nodeIndex);
 void printMaze(Graph* maze);
 void moveBugs(Graph *maze);
 void enqueue(Queue* queue, int data);
 int dequeue(Queue* queue);
+int queueIsEmpty(Queue* queue){ return (queue->queue[queue->front % queue->arraySize] != -1) ? 0 : 1; }
+void bfs(Graph* graph, int startingNodeIndex);
 
 // Position helpers
 int up(int index, int rowLength){ return index - rowLength; }
 int down(int index, int rowLength){ return index + rowLength; }
 int left(int index, int rowLength){ return (index % rowLength != 0) ? index - 1 : -1; }
 int right(int index, int rowLength){ return (index % rowLength != rowLength - 1) ? index + 1 : -1; }
+
+const int NOT_ON_QUEUE = 0;
+const int NOT_VISITED = 1;
+const int VISITED = 2;
 
 int main(int argc, char** args){
     if(argc < 2){
@@ -30,6 +36,7 @@ int main(int argc, char** args){
     }
     Graph maze;
     maze.graphArray = NULL;
+    maze.bugs = NULL;
     maze.rowLength = 0;
     maze.colHeight = 0;
     maze.emptyIndex = 0;
@@ -42,9 +49,11 @@ int main(int argc, char** args){
     }
     printMaze(&maze);
     // game loop
-    readInput(&maze);
-    printMaze(&maze);
-    moveBugs(&maze);
+    while (1){
+        readInput(&maze);
+        printMaze(&maze);
+        moveBugs(&maze);
+    }
     printf("idk");
     return 0;
 }
@@ -82,6 +91,9 @@ void readInput(Graph* graph){
                 graph->graphArray[graph->tronIndex]->data = ' ';
                 graph->graphArray[newIndex]->data = 'T';
                 graph->tronIndex = newIndex;
+            } else if (graph->graphArray[newIndex]->data == 'I') {
+                printf("You win!\n");
+                exit(0);
             } else {
                 printf("Can't move that way\n");
                 runAgain = 1;
@@ -91,9 +103,49 @@ void readInput(Graph* graph){
 }
 
 void moveBugs(Graph* maze) {
+    bfs(maze, maze->tronIndex);
+    NodeList* bug = maze->bugs;
+    while (bug != NULL){
+        GraphNode* bugNode = maze->graphArray[bug->nodeIndex];
+        int newIndex = bugNode->bfsParentIndex;
+        if (maze->graphArray[newIndex]->data == ' ') {
+            maze->graphArray[newIndex]->data = bugNode->data;
+            maze->graphArray[bug->nodeIndex]->data = ' ';
+            bug->nodeIndex = newIndex;
+        } else if (maze->graphArray[newIndex]->data == 'T'){
+            printf("Bruh moment\n");
+            printMaze(maze);
+            exit(0);
+        }
+        bug = bug->next;
+    }
+    printMaze(maze);
+}
+
+void bfs(Graph* graph, int startingNodeIndex){
     Queue* queue = malloc(sizeof(Queue));
-    queue->arraySize = maze->rowLength * maze->colHeight;
-    enqueue(queue, 1);
+    queue->queue = NULL;
+    queue->arraySize = graph->rowLength * graph->colHeight;
+    enqueue(queue, startingNodeIndex);
+    while (!queueIsEmpty(queue)){
+        int index = dequeue(queue);
+        GraphNode* vertex = graph->graphArray[index];
+        if(vertex->label != VISITED){
+            vertex->label = VISITED;
+
+            NodeList* neighbor = vertex->adjNodes;
+            while (neighbor != NULL){
+                int label = graph->graphArray[neighbor->nodeIndex]->label;
+                if (label != VISITED && label != NOT_VISITED){
+                    GraphNode* neighborNode = graph->graphArray[neighbor->nodeIndex];
+                    neighborNode->label = NOT_VISITED;
+                    neighborNode->bfsParentIndex = index;
+                    enqueue(queue, neighbor->nodeIndex);
+                }
+                neighbor = neighbor->next;
+            }
+        }
+    }
 }
 
 void enqueue(Queue* queue, int data) {
@@ -174,10 +226,15 @@ void addGraphNode(char data, Graph* graph) {
     GraphNode* newNode = malloc(sizeof(GraphNode));
     newNode->data = data;
     newNode->adjNodes = NULL;
+    newNode->label = NOT_ON_QUEUE;
     graph->graphArray[graph->emptyIndex] = newNode;
 
     if (data == 'T'){
        graph->tronIndex = graph->emptyIndex;
+    } 
+    // If it's a bug
+    else if (data != ' ' && data != '#' && data != 'I'){
+        addNodeToList(&graph->bugs, graph->emptyIndex);
     }
 
     if(graph->emptyIndex == 0){
@@ -193,42 +250,41 @@ void addGraphNode(char data, Graph* graph) {
     // If the new node isn't in the first row
     if(graph->emptyIndex / graph->rowLength != 0){
         // Make this node and the one above it adjacent to each other
-//        addAdjNode(graph->graphArray[graph->emptyIndex], graph->emptyIndex - graph->rowLength);
-        addAdjNode(graph->graphArray[graph->emptyIndex], up(graph->emptyIndex, graph->rowLength));
-        addAdjNode(graph->graphArray[up(graph->emptyIndex, graph->rowLength)], graph->emptyIndex);
+//        addNodeToList(graph->graphArray[graph->emptyIndex], graph->emptyIndex - graph->rowLength);
+        addNodeToList(&graph->graphArray[graph->emptyIndex]->adjNodes, up(graph->emptyIndex, graph->rowLength));
+        addNodeToList(&graph->graphArray[up(graph->emptyIndex, graph->rowLength)]->adjNodes, graph->emptyIndex);
     }
 
     // If the node isn't at the start of a row
-//    if(graph->emptyIndex % (graph->rowLength + 1) < graph->rowLength){
     if(graph->emptyIndex % graph->rowLength != 0){
         // Make this node and the one before it adjacent to each other
-        addAdjNode(graph->graphArray[graph->emptyIndex], graph->emptyIndex - 1);
-        addAdjNode(graph->graphArray[graph->emptyIndex - 1], graph->emptyIndex);
+        addNodeToList(&graph->graphArray[graph->emptyIndex]->adjNodes, graph->emptyIndex - 1);
+        addNodeToList(&graph->graphArray[graph->emptyIndex - 1]->adjNodes, graph->emptyIndex);
     }
     graph->emptyIndex++;
 }
 
 //TODO: This maybe can be reworked into having node->adjNodes be an array of size 4
-void addAdjNode(GraphNode* node, int adjNodeIndex) {
-    NodeList* adjacentNode = malloc(sizeof(NodeList));
-    adjacentNode->nodeIndex = adjNodeIndex;
+void addNodeToList(NodeList** list, int nodeIndex) {
+    NodeList* newNode = malloc(sizeof(NodeList));
+    newNode->nodeIndex = nodeIndex;
 
-    if(node->adjNodes == NULL){
-        node->adjNodes = adjacentNode;
+    if(*list == NULL){
+        *list = newNode;
     } else {
-        if(node->adjNodes->nodeIndex > adjNodeIndex){
-            adjacentNode->next = node->adjNodes;
-            node->adjNodes = adjacentNode;
+        if((*list)->nodeIndex > nodeIndex){
+            newNode->next = *list;
+            *list = newNode;
         } else {
             //This puts the indices in order by sorting since up < left < right < down
-            NodeList* prevNode = node->adjNodes;
-            NodeList* tempNode = node->adjNodes->next;
-            while (tempNode != NULL && tempNode->nodeIndex < adjNodeIndex){
+            NodeList* prevNode = *list;
+            NodeList* tempNode = (*list)->next;
+            while (tempNode != NULL && tempNode->nodeIndex < nodeIndex){
                 prevNode = tempNode;
                 tempNode = tempNode->next;
             }
-            adjacentNode->next = tempNode;
-            prevNode->next = adjacentNode;
+            newNode->next = tempNode;
+            prevNode->next = newNode;
         }
     }
 }

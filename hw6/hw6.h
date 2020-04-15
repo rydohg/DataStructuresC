@@ -14,6 +14,8 @@ typedef struct nodeList {
 typedef struct node {
     char data;
     NodeList* adjNodes;
+    int label;
+    int bfsParentIndex;
 } GraphNode;
 
 typedef struct {
@@ -21,6 +23,7 @@ typedef struct {
     int rowLength, colHeight;
     int emptyIndex;
     int tronIndex;
+    NodeList* bugs;
 } Graph;
 
 typedef struct {
