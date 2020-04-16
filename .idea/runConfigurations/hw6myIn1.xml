@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="hw6myIn1" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="../hw6/myTestInput1.txt" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="hw6" TARGET_NAME="hw6" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="hw6" RUN_TARGET_NAME="hw6">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
