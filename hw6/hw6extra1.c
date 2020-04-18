@@ -20,6 +20,8 @@ int dequeue(Queue *queue);
 int queueIsEmpty(Queue *queue) { return (queue->queue[queue->front % queue->arraySize] != -1) ? 0 : 1; }
 void printParents(Graph *maze);
 
+void addNodeToEndOfList(NodeList** list, int index);
+
 // Position helpers
 int up(int index, int rowLength) { return index - rowLength; }
 int down(int index, int rowLength) { return index + rowLength; }
@@ -58,10 +60,13 @@ int main(int argc, char **args) {
         debugArray[i] = maze.graphArray[i];
     }
 
-    printMaze(&maze);
-    readInput(&maze);
-    printMaze(&maze);
-    moveBugs(&maze);
+    // Game loop. This loop is terminated by either a win or a loss
+    while (1){
+        printMaze(&maze);
+        readInput(&maze);
+        printMaze(&maze);
+        moveBugs(&maze);
+    }
     return 0;
 }
 
@@ -113,9 +118,9 @@ void readInput(Graph *graph) {
         }
         // If Tron can move then keep asking for input
         else if (graph->graphArray[up(graph->tronIndex, graph->rowLength)]->data == ' ' ||
-                   graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
-                   graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
-                   graph->graphArray[right(graph->tronIndex, graph->rowLength)]->data == ' ') {
+                 graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
+                 graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
+                 graph->graphArray[right(graph->tronIndex, graph->rowLength)]->data == ' ') {
             printf("Can't move that way\n");
             runAgain = 1;
         }
@@ -188,6 +193,10 @@ void moveBugs(Graph *maze) {
             printf("A bug is not hungry any more!\n");
             exit(0);
         }
+        /*for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
+            maze->graphArray[i]->label = NOT_ON_QUEUE;
+        }
+        bfs(maze, maze->tronIndex);*/
         bug = bug->next;
     }
 }
@@ -304,7 +313,7 @@ void readMazeFromFile(char *filename, Graph *graph) {
             graph->colHeight = atoi(strtok(NULL, " "));
             graph->graphArray = calloc(graph->rowLength * graph->colHeight, sizeof(GraphNode *));
         }
-        // The rest of the lines contain the maze. Each character is added to the graph.
+            // The rest of the lines contain the maze. Each character is added to the graph.
         else {
             for (int i = 0; i < strlen(currentLine); ++i) {
                 addGraphNode(currentLine[i], graph);
@@ -326,7 +335,7 @@ void addGraphNode(char data, Graph *graph) {
     if (data == 'T') {
         graph->tronIndex = graph->emptyIndex;
     }
-    // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
+        // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
     else if (data != ' ' && data != '#' && data != 'I') {
         addNodeToList(&graph->bugs, graph->emptyIndex);
     }
@@ -358,7 +367,6 @@ void addGraphNode(char data, Graph *graph) {
 }
 
 // Makes a linked list that keeps track of the bugs
-//TODO: alphabetically sort the bugs
 void addNodeToList(NodeList **list, int nodeIndex) {
     NodeList *newNode = malloc(sizeof(NodeList));
     newNode->nodeIndex = nodeIndex;
@@ -379,5 +387,20 @@ void addNodeToList(NodeList **list, int nodeIndex) {
             newNode->next = tempNode;
             prevNode->next = newNode;
         }
+    }
+}
+
+void addNodeToEndOfList(NodeList** list, int index){
+    NodeList *newNode = malloc(sizeof(NodeList));
+    newNode->nodeIndex = index;
+
+    if (*list == NULL) {
+        *list = newNode;
+    } else {
+        NodeList *tempNode = *list;
+        while (tempNode->next != NULL) {
+            tempNode = tempNode->next;
+        }
+        tempNode->next = newNode;
     }
 }

@@ -66,3 +66,6 @@ typedef struct {
         }
     }
     */
+
+/*printf("%c: (%d, %d)\n", neighborNode->data, neighbors[i] % graph->rowLength,
+                           neighbors[i] / graph->colHeight);*/
