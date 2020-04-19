@@ -62,7 +62,6 @@ int main(int argc, char **args) {
     readInput(&maze);
     printMaze(&maze);
     moveBugs(&maze);
-    return 0;
 }
 
 void readInput(Graph *graph) {
@@ -113,9 +112,9 @@ void readInput(Graph *graph) {
         }
         // If Tron can move then keep asking for input
         else if (graph->graphArray[up(graph->tronIndex, graph->rowLength)]->data == ' ' ||
-                   graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
-                   graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
-                   graph->graphArray[right(graph->tronIndex, graph->rowLength)]->data == ' ') {
+                 graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
+                 graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
+                 graph->graphArray[right(graph->tronIndex, graph->rowLength)]->data == ' ') {
             printf("Can't move that way\n");
             runAgain = 1;
         }
@@ -124,20 +123,26 @@ void readInput(Graph *graph) {
 }
 
 void moveBugs(Graph *maze) {
-    // Reset the labels between each run of BFS
-    for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
-        maze->graphArray[i]->label = NOT_ON_QUEUE;
-    }
-    // Run BFS to create a spanning tree made from each node
-    // storing the index of its parent in the spanning tree
-    // Following the parent indices is the shortest path to Tron
-    bfs(maze, maze->tronIndex);
-
     // For each bug determine the next move as calculated in BFS then create the output specified in HW6.pdf
     NodeList *bug = maze->bugs;
     while (bug != NULL) {
+        // Reset the labels and parentIndices between each run of BFS
+        for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
+            maze->graphArray[i]->label = NOT_ON_QUEUE;
+            maze->graphArray[i]->bfsParentIndex = -1;
+        }
+        // Run BFS to create a spanning tree made from each node
+        // storing the index of its parent in the spanning tree
+        // Following the parent indices is the shortest path to Tron
+        bfs(maze, maze->tronIndex);
+
         GraphNode *bugNode = maze->graphArray[bug->nodeIndex];
         int newIndex = bugNode->bfsParentIndex;
+        // Don't try to go to a non-existent node. This happens if we can't reach Tron from this bug
+        if(newIndex < 0){
+            bug = bug->next;
+            continue;
+        }
         if (maze->graphArray[newIndex]->data == ' ') {
             // Determine which direction BFS is taking us
             char move = ' ';
@@ -210,7 +215,14 @@ void bfs(Graph *graph, int startingNodeIndex) {
             for (int i = 0; i < 4; ++i) {
                 GraphNode *neighborNode = graph->graphArray[neighbors[i]];
                 int label = neighborNode->label;
-                if (label != VISITED && label != NOT_VISITED_ON_QUEUE && neighborNode->data != '#' && neighborNode->data != 'I') {
+                // The last clause in the if statement handles one of the conditions that can cause a collision between bugs
+                // Don't add to the spanning tree if the parent and its neighbor are bugs meaning don't put another bug
+                // as the next move in the shortest path for a bug
+                if (label != VISITED &&
+                    label != NOT_VISITED_ON_QUEUE &&
+                    neighborNode->data != '#' &&
+                    neighborNode->data != 'I' &&
+                    !((vertex->data >= 'a' && vertex->data <= 'z') && (neighborNode->data >= 'a' && neighborNode->data <= 'z'))) {
                     neighborNode->label = NOT_VISITED_ON_QUEUE;
                     // Each node has an int that points to that node's parent
                     // in the BFS spanning tree, allowing us to find the shortest path
@@ -304,7 +316,7 @@ void readMazeFromFile(char *filename, Graph *graph) {
             graph->colHeight = atoi(strtok(NULL, " "));
             graph->graphArray = calloc(graph->rowLength * graph->colHeight, sizeof(GraphNode *));
         }
-        // The rest of the lines contain the maze. Each character is added to the graph.
+            // The rest of the lines contain the maze. Each character is added to the graph.
         else {
             for (int i = 0; i < strlen(currentLine); ++i) {
                 addGraphNode(currentLine[i], graph);
@@ -352,7 +364,6 @@ void addGraphNode(char data, Graph *graph) {
 }
 
 // Makes a linked list that keeps track of the bugs
-//TODO: alphabetically sort the bugs
 void addNodeToList(NodeList **list, int nodeIndex, Graph* graph) {
     NodeList *newNode = malloc(sizeof(NodeList));
     newNode->nodeIndex = nodeIndex;
