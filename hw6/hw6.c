@@ -14,7 +14,7 @@ void readInput(Graph *graph);
 void moveBugs(Graph *maze);
 void bfs(Graph *graph, int startingNodeIndex);
 void printMaze(Graph *maze);
-void addNodeToList(NodeList **list, int nodeIndex);
+void addNodeToList(NodeList **list, int nodeIndex, Graph* graph);
 void enqueue(Queue *queue, int data);
 int dequeue(Queue *queue);
 int queueIsEmpty(Queue *queue) { return (queue->queue[queue->front % queue->arraySize] != -1) ? 0 : 1; }
@@ -328,14 +328,8 @@ void addGraphNode(char data, Graph *graph) {
     }
     // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
     else if (data != ' ' && data != '#' && data != 'I') {
-        addNodeToList(&graph->bugs, graph->emptyIndex);
+        addNodeToList(&graph->bugs, graph->emptyIndex, graph);
     }
-
-    // If this is the first node then it doesn't have any adjacent nodes yet so skip that code
-    /*if (graph->emptyIndex == 0) {
-        graph->emptyIndex = 1;
-        return;
-    }*/
 
     // Check if the input maze is bigger than the given dimensions
     if (graph->emptyIndex >= graph->rowLength * graph->colHeight) {
@@ -359,20 +353,20 @@ void addGraphNode(char data, Graph *graph) {
 
 // Makes a linked list that keeps track of the bugs
 //TODO: alphabetically sort the bugs
-void addNodeToList(NodeList **list, int nodeIndex) {
+void addNodeToList(NodeList **list, int nodeIndex, Graph* graph) {
     NodeList *newNode = malloc(sizeof(NodeList));
     newNode->nodeIndex = nodeIndex;
 
     if (*list == NULL) {
         *list = newNode;
     } else {
-        if ((*list)->nodeIndex > nodeIndex) {
+        if (graph->graphArray[(*list)->nodeIndex]->data > graph->graphArray[nodeIndex]->data) {
             newNode->next = *list;
             *list = newNode;
         } else {
             NodeList *prevNode = *list;
             NodeList *tempNode = (*list)->next;
-            while (tempNode != NULL && tempNode->nodeIndex < nodeIndex) {
+            while (tempNode != NULL && graph->graphArray[tempNode->nodeIndex]->data < graph->graphArray[nodeIndex]->data) {
                 prevNode = tempNode;
                 tempNode = tempNode->next;
             }
