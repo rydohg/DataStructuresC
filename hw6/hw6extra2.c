@@ -107,13 +107,13 @@ void readInput(Graph *graph) {
             graph->graphArray[newIndex]->bfsParentIndex = -1;
             graph->tronIndex = newIndex;
         }
-        // Exit the program if Tron wins
+            // Exit the program if Tron wins
         else if (graph->graphArray[newIndex]->data == 'I') {
             printMaze(graph);
             printf("Tron reaches I/O Tower\n");
             exit(0);
         }
-        // If Tron can move then keep asking for input
+            // If Tron can move then keep asking for input
         else if (graph->graphArray[up(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
@@ -191,7 +191,7 @@ void moveBugs(Graph *maze) {
             maze->graphArray[bug->nodeIndex]->data = ' ';
             bug->nodeIndex = newIndex;
         }
-        // If the bug reaches Tron then output that Tron lost and exit
+            // If the bug reaches Tron then output that Tron lost and exit
         else if (maze->graphArray[newIndex]->data == 'T') {
             printMaze(maze);
             printf("A bug is not hungry any more!\n");
@@ -342,7 +342,7 @@ void addGraphNode(char data, Graph *graph) {
     if (data == 'T') {
         graph->tronIndex = graph->emptyIndex;
     }
-    // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
+        // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
     else if (data != ' ' && data != '#' && data != 'I') {
         addNodeToList(&graph->bugs, graph->emptyIndex, graph);
     }

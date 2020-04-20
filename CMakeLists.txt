@@ -30,3 +30,6 @@ add_executable(hw6 hw6/hw6.c hw6/hw6.h)
 
 project(hw6extra1)
 add_executable(hw6extra1 hw6/hw6extra1.c hw6/hw6.h)
+
+project(hw6extra2)
+add_executable(hw6extra2 hw6/hw6extra2.c hw6/hw6.h)
