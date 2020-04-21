@@ -5,9 +5,46 @@
   Section: 14
 
   Description of this file:
-
+  HW6.c is a very simplified version of the I/O tower game from Tron.
+  Where the player Tron represented as the character 'T' tries to
+  reach the I/O tower 'I' while avoiding the bugs trying to kill him represented
+  as letters 'a' through 'z'.
+  It takes a maze as input from a file given as a program argument
+  that contains a game world and the starting positions of Tron and the bugs
+  then asks the player to input which direction to move to hopefully get to the I/O tower.
 */
-#include "hw6.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+// Linked list to store a list of the bugs
+typedef struct nodeList {
+    int nodeIndex;
+    struct nodeList* next;
+} NodeList;
+
+// An adjacency list that uses an array since each vertex can only have 4 adjacent nodes
+typedef struct node {
+    char data;
+    int adjNodes[4];
+    int label;
+    int bfsParentIndex;
+} GraphNode;
+
+// Data struct that stores the game world and its variables
+typedef struct {
+    GraphNode** graphArray;
+    int rowLength, colHeight;
+    int emptyIndex;
+    int tronIndex;
+    NodeList* bugs;
+} Graph;
+
+typedef struct {
+    int* queue;
+    int front, back, arraySize, queueSize;
+} Queue;
+
 void readMazeFromFile(char *filename, Graph *graph);
 void addGraphNode(char data, Graph *graph);
 void readInput(Graph *graph);
@@ -18,7 +55,6 @@ void addNodeToList(NodeList **list, int nodeIndex, Graph* graph);
 void enqueue(Queue *queue, int data);
 int dequeue(Queue *queue);
 int queueIsEmpty(Queue *queue) { return (queue->queue[queue->front % queue->arraySize] != -1) ? 0 : 1; }
-void printParents(Graph *maze);
 
 // Position helpers
 int up(int index, int rowLength) { return index - rowLength; }
@@ -32,12 +68,11 @@ const int NOT_VISITED_ON_QUEUE = 1;
 const int VISITED = 2;
 
 // These are the indices used by addGraphNode to add to the adjNodes array for each node
-/* TODO: BFS will go in order 0-3 and the HW6.pdf says BFS should go up, down, left, right but
- * the only way to reproduce testOutput1.txt is to go right, down, left, up
- */
+// They go in the opposite order of up, down, left, right because this is the order they are enqueued.
+// They are taken off the queue and visited in the order up, down, left, right.
 const int UP = 3;
-const int DOWN = 1;
-const int LEFT = 2;
+const int DOWN = 2;
+const int LEFT = 1;
 const int RIGHT = 0;
 
 int main(int argc, char **args) {
@@ -52,16 +87,14 @@ int main(int argc, char **args) {
     maze.emptyIndex = 0;
 
     readMazeFromFile(args[1], &maze);
-    // Turn the graph's array into a traditional array so it can be represented in CLion's debugger
-    GraphNode *debugArray[maze.rowLength * maze.colHeight];
-    for (int i = 0; i < maze.rowLength * maze.colHeight; ++i) {
-        debugArray[i] = maze.graphArray[i];
-    }
 
     printMaze(&maze);
     readInput(&maze);
     printMaze(&maze);
     moveBugs(&maze);
+
+    free(maze.graphArray);
+    free(maze.bugs);
 }
 
 void readInput(Graph *graph) {
@@ -98,24 +131,26 @@ void readInput(Graph *graph) {
         if(runAgain) { continue; }
 
         // If we can move to a cell then do it
-        if (graph->graphArray[newIndex]->data == ' ') {
+        if (graph->graphArray[newIndex]->data == ' ' || graph->graphArray[newIndex]->data == 'I') {
+            char newIndexOldData = graph->graphArray[newIndex]->data;
+
             graph->graphArray[graph->tronIndex]->data = ' ';
             graph->graphArray[newIndex]->data = 'T';
             graph->graphArray[newIndex]->bfsParentIndex = -1;
             graph->tronIndex = newIndex;
-        }
-        // Exit the program if Tron wins
-        else if (graph->graphArray[newIndex]->data == 'I') {
-            printMaze(graph);
-            printf("Tron reaches I/O Tower\n");
-            exit(0);
+
+            // Exit the program if Tron wins
+            if(newIndexOldData == 'I'){
+                printMaze(graph);
+                printf("Tron reaches I/O Tower\n");
+                exit(0);
+            }
         }
         // If Tron can move then keep asking for input
         else if (graph->graphArray[up(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[right(graph->tronIndex, graph->rowLength)]->data == ' ') {
-            printf("Can't move that way\n");
             runAgain = 1;
         }
         // If Tron can't move any way then the loop ends and then we make the bugs move which would kill Tron
@@ -127,7 +162,8 @@ void moveBugs(Graph *maze) {
     NodeList *bug = maze->bugs;
     while (bug != NULL) {
         // Reset the labels and parentIndices between each run of BFS
-        for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
+        int i;
+        for (i = 0; i < maze->rowLength * maze->colHeight; ++i) {
             maze->graphArray[i]->label = NOT_ON_QUEUE;
             maze->graphArray[i]->bfsParentIndex = -1;
         }
@@ -143,7 +179,7 @@ void moveBugs(Graph *maze) {
             bug = bug->next;
             continue;
         }
-        if (maze->graphArray[newIndex]->data == ' ') {
+        if (maze->graphArray[newIndex]->data == ' ' || maze->graphArray[newIndex]->data == 'T') {
             // Determine which direction BFS is taking us
             char move = ' ';
             if (newIndex < bug->nodeIndex) {
@@ -182,17 +218,20 @@ void moveBugs(Graph *maze) {
             }
             printf("\n");
 
+            char newSpaceOldData = maze->graphArray[newIndex]->data;
             // Actually move the bug
             maze->graphArray[newIndex]->data = bugNode->data;
             maze->graphArray[bug->nodeIndex]->data = ' ';
             bug->nodeIndex = newIndex;
+
+            // If the bug reaches Tron then output that Tron lost and exit
+            if (newSpaceOldData == 'T'){
+                printMaze(maze);
+                printf("A bug is not hungry any more!\n");
+                exit(0);
+            }
         }
-        // If the bug reaches Tron then output that Tron lost and exit
-        else if (maze->graphArray[newIndex]->data == 'T') {
-            printMaze(maze);
-            printf("A bug is not hungry any more!\n");
-            exit(0);
-        }
+        // If the bug is trying to move into another bug, do nothing
         bug = bug->next;
     }
 }
@@ -212,17 +251,21 @@ void bfs(Graph *graph, int startingNodeIndex) {
             vertex->label = VISITED;
 
             int *neighbors = vertex->adjNodes;
-            for (int i = 0; i < 4; ++i) {
+            int i;
+            for (i = 0; i < 4; ++i) {
                 GraphNode *neighborNode = graph->graphArray[neighbors[i]];
                 int label = neighborNode->label;
+                // I sent an email asking about if and how we should react to bugs trying to go into each other, I
+                // didn't get a response yet so I have this commented out as a record in case we do have to deal with collisions
+
                 // The last clause in the if statement handles one of the conditions that can cause a collision between bugs
-                // Don't add to the spanning tree if the parent and its neighbor are bugs meaning don't put another bug
-                // as the next move in the shortest path for a bug
+                // Don't add to the spanning tree if the parent and its neighbor are bugs meaning don't put a bug
+                // as the next move in the shortest path for another bug
                 if (label != VISITED &&
                     label != NOT_VISITED_ON_QUEUE &&
                     neighborNode->data != '#' &&
-                    neighborNode->data != 'I' &&
-                    !((vertex->data >= 'a' && vertex->data <= 'z') && (neighborNode->data >= 'a' && neighborNode->data <= 'z'))) {
+                    neighborNode->data != 'I' /*&&
+                    !((vertex->data >= 'a' && vertex->data <= 'z') && (neighborNode->data >= 'a' && neighborNode->data <= 'z'))*/) {
                     neighborNode->label = NOT_VISITED_ON_QUEUE;
                     // Each node has an int that points to that node's parent
                     // in the BFS spanning tree, allowing us to find the shortest path
@@ -232,6 +275,8 @@ void bfs(Graph *graph, int startingNodeIndex) {
             }
         }
     }
+    free(queue->queue);
+    free(queue);
 }
 
 void enqueue(Queue *queue, int data) {
@@ -239,7 +284,8 @@ void enqueue(Queue *queue, int data) {
     // Initialize the queue, this assumes that arraySize is correctly initialized
     if (queue->queue == NULL) {
         queue->queue = malloc(sizeof(int) * queue->arraySize);
-        for (int i = 0; i < queue->arraySize; ++i) {
+        int i;
+        for (i = 0; i < queue->arraySize; ++i) {
             queue->queue[i] = -1;
         }
         queue->front = 0;
@@ -260,14 +306,17 @@ int dequeue(Queue *queue) {
 }
 
 void printMaze(Graph *maze) {
+    // Print the column index row
     printf(" ");
-    for (int j = 0; j < maze->rowLength; ++j) {
+    int j;
+    for (j = 0; j < maze->rowLength; ++j) {
         printf("%d", j);
     }
     printf("\n");
 
     int lineCounter = 0;
-    for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
+    int i;
+    for (i = 0; i < maze->rowLength * maze->colHeight; ++i) {
         // Print and keep track of the row number if this is the beginning of a row
         if (i % maze->rowLength == 0) {
             printf("%d", lineCounter);
@@ -279,18 +328,6 @@ void printMaze(Graph *maze) {
             printf("\n");
         }
     }
-}
-
-void printParents(Graph *maze) {
-    printf("--------------\n");
-    for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
-        printf("%02d:%02d ", i, maze->graphArray[i]->bfsParentIndex);
-        // Add a newline after the last char in  a row
-        if (i % maze->rowLength == maze->rowLength - 1) {
-            printf("\n");
-        }
-    }
-    printf("--------------\n");
 }
 
 void readMazeFromFile(char *filename, Graph *graph) {
@@ -316,9 +353,10 @@ void readMazeFromFile(char *filename, Graph *graph) {
             graph->colHeight = atoi(strtok(NULL, " "));
             graph->graphArray = calloc(graph->rowLength * graph->colHeight, sizeof(GraphNode *));
         }
-            // The rest of the lines contain the maze. Each character is added to the graph.
+        // The rest of the lines contain the maze. Each character is added to the graph.
         else {
-            for (int i = 0; i < strlen(currentLine); ++i) {
+            int i;
+            for (i = 0; i < strlen(currentLine); ++i) {
                 addGraphNode(currentLine[i], graph);
             }
         }

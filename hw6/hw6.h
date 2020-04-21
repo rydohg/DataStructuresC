@@ -72,3 +72,25 @@ typedef struct {
 
 /*
 */
+
+/*
+void printParents(Graph *maze);
+void printParents(Graph *maze) {
+    printf("--------------\n");
+    for (int i = 0; i < maze->rowLength * maze->colHeight; ++i) {
+        printf("%02d:%02d ", i, maze->graphArray[i]->bfsParentIndex);
+        // Add a newline after the last char in  a row
+        if (i % maze->rowLength == maze->rowLength - 1) {
+            printf("\n");
+        }
+    }
+    printf("--------------\n");
+}*/
+
+// Turn the graph's array into a traditional array so it can be represented in CLion's debugger
+/*
+GraphNode *debugArray[maze.rowLength * maze.colHeight];
+int i;
+for (i = 0; i < maze.rowLength * maze.colHeight; ++i) {
+debugArray[i] = maze.graphArray[i];
+}*/
