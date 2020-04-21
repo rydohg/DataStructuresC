@@ -102,10 +102,12 @@ void readInput(Graph *graph) {
     int runAgain = 1;
     while (runAgain) {
         runAgain = 0;
-        char *move = malloc(sizeof(char) * 2);
+        char *move = malloc(sizeof(char) * 3);
         printf("Please enter your move [u(p), d(own), l(elf), or r(ight)]: ");
         // Gets move character, newline, and \0
-        fgets(move, 3, stdin);
+        fgets(move, 2, stdin);
+        // Flush stdin so we don't run multiple times if someone enters more than one character
+        while (getchar() != '\n');
 
         // newIndex is where the player wants Tron to go and we set it using this switch statement
         // We set runAgain to be true if the move isn't u, d, l, or r
@@ -154,6 +156,7 @@ void readInput(Graph *graph) {
             runAgain = 1;
         }
         // If Tron can't move any way then the loop ends and then we make the bugs move which would kill Tron
+        free(move);
     }
 }
 

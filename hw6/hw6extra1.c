@@ -5,7 +5,13 @@
   Section: 14
 
   Description of this file:
-
+  HW6.c is a very simplified version of the I/O tower game from Tron.
+  Where the player Tron represented as the character 'T' tries to
+  reach the I/O tower 'I' while avoiding the bugs trying to kill him represented
+  as letters 'a' through 'z'.
+  It takes a maze as input from a file given as a program argument
+  that contains a game world and the starting positions of Tron and the bugs
+  then asks the player to input which direction to move to hopefully get to the I/O tower.
 */
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +31,7 @@ typedef struct node {
     int bfsParentIndex;
 } GraphNode;
 
+// Data struct that stores the game world and its variables
 typedef struct {
     GraphNode** graphArray;
     int rowLength, colHeight;
@@ -93,10 +100,12 @@ void readInput(Graph *graph) {
     int runAgain = 1;
     while (runAgain) {
         runAgain = 0;
-        char *move = malloc(sizeof(char) * 2);
+        char *move = malloc(sizeof(char) * 3);
         printf("Please enter your move [u(p), d(own), l(elf), or r(ight)]: ");
         // Gets move character, newline, and \0
-        fgets(move, 3, stdin);
+        fgets(move, 2, stdin);
+        // Flush stdin so we don't run multiple times if someone enters more than one character
+        while (getchar() != '\n');
 
         // newIndex is where the player wants Tron to go and we set it using this switch statement
         // We set runAgain to be true if the move isn't u, d, l, or r
@@ -142,10 +151,10 @@ void readInput(Graph *graph) {
                  graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[right(graph->tronIndex, graph->rowLength)]->data == ' ') {
-            printf("Can't move that way\n");
             runAgain = 1;
         }
         // If Tron can't move any way then the loop ends and then we make the bugs move which would kill Tron
+        free(move);
     }
 }
 
@@ -251,8 +260,8 @@ void bfs(Graph *graph, int startingNodeIndex) {
                 // didn't get a response yet so I have this commented out as a record in case we do have to deal with collisions
 
                 // The last clause in the if statement handles one of the conditions that can cause a collision between bugs
-                // Don't add to the spanning tree if the parent and its neighbor are bugs meaning don't put another bug
-                // as the next move in the shortest path for a bug
+                // Don't add to the spanning tree if the parent and its neighbor are bugs meaning don't put a bug
+                // as the next move in the shortest path for another bug
                 if (label != VISITED &&
                     label != NOT_VISITED_ON_QUEUE &&
                     neighborNode->data != '#' &&
