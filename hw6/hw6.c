@@ -177,12 +177,12 @@ void moveBugs(Graph *maze) {
 
         GraphNode *bugNode = maze->graphArray[bug->nodeIndex];
         int newIndex = bugNode->bfsParentIndex;
-        // Don't try to go to a non-existent node. This happens if we can't reach Tron from this bug
+        // If the bug doesn't have a path to Tron then just print the bug name
         if(newIndex < 0){
+            printf("Bug %c:\n", bugNode->data);
             bug = bug->next;
             continue;
-        }
-        if (maze->graphArray[newIndex]->data == ' ' || maze->graphArray[newIndex]->data == 'T') {
+        } else if (maze->graphArray[newIndex]->data == ' ' || maze->graphArray[newIndex]->data == 'T') {
             // Determine which direction BFS is taking us
             char move = ' ';
             if (newIndex < bug->nodeIndex) {
@@ -216,7 +216,7 @@ void moveBugs(Graph *maze) {
             // instead of the current vertex
             nextVertex = bug->nodeIndex;
             while (nextVertex != -1) {
-                printf(" (%d,%d)", nextVertex / maze->rowLength, nextVertex % maze->colHeight);
+                printf(" (%d,%d)", nextVertex / maze->rowLength, nextVertex % maze->rowLength);
                 nextVertex = maze->graphArray[nextVertex]->bfsParentIndex;
             }
             printf("\n");
@@ -234,7 +234,6 @@ void moveBugs(Graph *maze) {
                 exit(0);
             }
         }
-        // If the bug is trying to move into another bug, do nothing
         bug = bug->next;
     }
 }
@@ -258,17 +257,14 @@ void bfs(Graph *graph, int startingNodeIndex) {
             for (i = 0; i < 4; ++i) {
                 GraphNode *neighborNode = graph->graphArray[neighbors[i]];
                 int label = neighborNode->label;
-                // I sent an email asking about if and how we should react to bugs trying to go into each other, I
-                // didn't get a response yet so I have this commented out as a record in case we do have to deal with collisions
 
-                // The last clause in the if statement handles one of the conditions that can cause a collision between bugs
-                // Don't add to the spanning tree if the parent and its neighbor are bugs meaning don't put a bug
-                // as the next move in the shortest path for another bug
+                // The last clause in the if statement makes BFS treat other bugs as obstacles
+                // Don't create any paths that have another bug on it
                 if (label != VISITED &&
                     label != NOT_VISITED_ON_QUEUE &&
                     neighborNode->data != '#' &&
-                    neighborNode->data != 'I' /*&&
-                    !((vertex->data >= 'a' && vertex->data <= 'z') && (neighborNode->data >= 'a' && neighborNode->data <= 'z'))*/) {
+                    neighborNode->data != 'I' &&
+                    !(vertex->data >= 'a' && vertex->data <= 'z')) {
                     neighborNode->label = NOT_VISITED_ON_QUEUE;
                     // Each node has an int that points to that node's parent
                     // in the BFS spanning tree, allowing us to find the shortest path
