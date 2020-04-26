@@ -94,3 +94,9 @@ int i;
 for (i = 0; i < maze.rowLength * maze.colHeight; ++i) {
 debugArray[i] = maze.graphArray[i];
 }*/
+
+/*int nextVertex = maze->tronIndex;
+    while (nextVertex != -1){
+        printf(" (%d,%d)", nextVertex / maze->rowLength, nextVertex % maze->rowLength);
+        nextVertex = maze->graphArray[nextVertex]->bfsParentIndex;
+    }*/
