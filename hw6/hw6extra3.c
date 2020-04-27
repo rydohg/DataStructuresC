@@ -15,6 +15,8 @@
   Extra Credit 2:
   This version of hw6 uses Dijkstra's algorithm to move the bugs preferably along Tron's shortest path
   to the I/O tower, making the bugs "smarter".
+  Extra Credit 3:
+  Run multiple rounds of the game and Dijkstra's algorithm until Tron wins or gets eaten
 */
 #include <stdlib.h>
 #include <string.h>
@@ -119,10 +121,13 @@ int main(int argc, char **args) {
     maze.emptyIndex = 0;
 
     readMazeFromFile(args[1], &maze);
-    printMaze(&maze);
-    readInput(&maze);
-    printMaze(&maze);
-    moveBugs(&maze);
+    // Keep running and exit the program when Tron wins or gets eaten
+    while (1){
+        printMaze(&maze);
+        readInput(&maze);
+        printMaze(&maze);
+        moveBugs(&maze);
+    }
 }
 
 void readInput(Graph* graph) {

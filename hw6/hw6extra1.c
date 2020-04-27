@@ -12,6 +12,8 @@
   It takes a maze as input from a file given as a program argument
   that contains a game world and the starting positions of Tron and the bugs
   then asks the player to input which direction to move to hopefully get to the I/O tower.
+  Extra Credit 1:
+  Run multiple rounds of hw6 until Tron wins or gets eaten
 */
 #include <stdlib.h>
 #include <string.h>
@@ -87,6 +89,7 @@ int main(int argc, char **args) {
     maze.emptyIndex = 0;
 
     readMazeFromFile(args[1], &maze);
+    // Keep running and exit the program when Tron wins or gets eaten
     while (1){
         printMaze(&maze);
         readInput(&maze);
@@ -146,7 +149,7 @@ void readInput(Graph *graph) {
                 exit(0);
             }
         }
-            // If Tron can move then keep asking for input
+        // If Tron can move then keep asking for input
         else if (graph->graphArray[up(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
@@ -350,7 +353,7 @@ void readMazeFromFile(char *filename, Graph *graph) {
             graph->rowLength = atoi(strtok(NULL, " "));
             graph->graphArray = calloc(graph->rowLength * graph->colHeight, sizeof(GraphNode *));
         }
-            // The rest of the lines contain the maze. Each character is added to the graph.
+        // The rest of the lines contain the maze. Each character is added to the graph.
         else {
             int i;
             for (i = 0; i < strlen(currentLine); ++i) {
@@ -373,7 +376,7 @@ void addGraphNode(char data, Graph *graph) {
     if (data == 'T') {
         graph->tronIndex = graph->emptyIndex;
     }
-        // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
+    // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
     else if (data != ' ' && data != '#' && data != 'I') {
         addNodeToList(&graph->bugs, graph->emptyIndex, graph);
     }
