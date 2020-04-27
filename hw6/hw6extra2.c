@@ -12,6 +12,9 @@
   It takes a maze as input from a file given as a program argument
   that contains a game world and the starting positions of Tron and the bugs
   then asks the player to input which direction to move to hopefully get to the I/O tower.
+  Extra Credit 2:
+  This version of hw6 uses Dijkstra's algorithm to move the bugs preferably along Tron's shortest path
+  to the I/O tower, making the bugs "smarter".
 */
 #include <stdlib.h>
 #include <string.h>
@@ -51,11 +54,6 @@ typedef struct {
     int front, back, arraySize, queueSize;
 } Queue;
 
-/*typedef struct {
-    int label;
-    GraphNode* node;
-} Item;*/
-
 typedef struct {
     int** heap;
     int size;
@@ -89,11 +87,12 @@ void swap(int* a, int* b) {
     *b = temp;
 }
 
-// Dijkstra's stuff
 void addToPQueue(int data, PriorityQueue* queue, Graph* graph);
 int removeMin(PriorityQueue* pQueue, Graph* graph);
 void minHeapify(int index, PriorityQueue* pQueue, Graph* graph);
 void dijkstra(int startIndex, Graph* graph);
+int findInPQueue(int nodeIndex, PriorityQueue* pQueue);
+//void printDijkstra(Graph* maze);
 
 // BFS constants
 const int NOT_ON_QUEUE = 0;
@@ -113,15 +112,6 @@ int main(int argc, char **args) {
         printf("No input\n");
         exit(1);
     }
-/*    PriorityQueue* pQueue = malloc(sizeof(PriorityQueue));
-    pQueue->size = 2;
-    GraphNode* testNode = malloc(sizeof(GraphNode));
-    testNode->data = 'T';
-    Item* item = malloc(sizeof(Item));
-    item->node = testNode;
-    item->label = 1;
-    addToPQueue(item, pQueue);
-    printf("idk");*/
     // Initialize the maze
     Graph maze;
     maze.graphArray = NULL;
@@ -129,103 +119,12 @@ int main(int argc, char **args) {
     maze.emptyIndex = 0;
 
     readMazeFromFile(args[1], &maze);
-    dijkstra(maze.tronIndex, &maze);
-    GraphNode* debugArray[maze.rowLength * maze.colHeight];
-    int i;
-    for (i = 0; i < maze.rowLength * maze.colHeight; ++i) {
-        debugArray[i] = maze.graphArray[i];
-    }
-    printf("idk");
-//    while (1){
-/*        printMaze(&maze);
+    while (1){
+        printMaze(&maze);
         readInput(&maze);
         printMaze(&maze);
-        moveBugs(&maze);*/
-//    }
-}
-
-int findInPQueue(int nodeIndex, PriorityQueue* pQueue){
-    for (int i = 0; i < pQueue->emptyIndex; ++i) {
-        if (*pQueue->heap[i] == nodeIndex){
-            return i;
-        }
+        moveBugs(&maze);
     }
-    return -1;
-}
-
-void dijkstra(int startIndex, Graph* graph){
-    // Initialize all values of D[] to infinity except the start
-    int graphSize = graph->rowLength * graph->colHeight;
-    int distancesArray[graphSize];/* = malloc(sizeof(int) * graphSize);*/
-    for (int i = 0; i < graphSize; ++i) {
-        distancesArray[i] = INT_MAX;
-    }
-    distancesArray[startIndex] = 0;
-
-    // Initialize Priority Queue
-    PriorityQueue* pQueue = malloc(sizeof(PriorityQueue));
-    pQueue->heap = NULL;
-    pQueue->size = graphSize;
-
-    for (int j = 0; j < graphSize; ++j) {
-        graph->graphArray[j]->dijkstraLabel = distancesArray[j];
-        graph->graphArray[j]->inQueue = 1;
-        addToPQueue(j, pQueue, graph);
-    }
-
-    int debugArray[pQueue->size];
-    for (int j = 0; j < pQueue->size; ++j) {
-        debugArray[j] = *pQueue->heap[j];
-    }
-
-    // Algorithm
-    while (pQueue->emptyIndex > 0){
-        int minIndex = removeMin(pQueue, graph);
-        GraphNode* min = graph->graphArray[minIndex];
-        min->inQueue = 0;
-
-        if(min->data == '#' || min->data == 'I'){
-            continue;
-        }
-
-        for (int i = 0; i < 4; ++i) {
-            int neighborIndex = min->adjNodes[i];
-            GraphNode* neighbor = graph->graphArray[neighborIndex];
-            if(neighbor->inQueue && neighbor->data != '#' && neighbor->data != 'I'){
-                // Set distance between these vertices based on what hw6.pdf says
-                int distBetween;
-                if(min->onTronsPath && neighbor->onTronsPath){
-                    distBetween = 1;
-                } else if(min->onTronsPath && neighbor->onTronsPath){
-                    distBetween = 2;
-                } else {
-                    distBetween = 3;
-                }
-                // Edge Relaxation
-                if(distancesArray[minIndex] + distBetween < distancesArray[neighborIndex]){
-                    // Update distance
-                    distancesArray[neighborIndex] = distancesArray[minIndex] + distBetween;
-
-                    // Update Priority Queue
-                    int heapIndex = findInPQueue(neighborIndex, pQueue);
-                    graph->graphArray[*pQueue->heap[heapIndex]]->dijkstraLabel = distancesArray[minIndex] + distBetween;
-                    int index = heapIndex;
-                    while (index > 0 &&
-                        graph->graphArray[*pQueue->heap[heapParent(index)]]->dijkstraLabel > graph->graphArray[*pQueue->heap[index]]->dijkstraLabel){
-                        swap(pQueue->heap[index], pQueue->heap[heapParent(index)]);
-                        index = heapParent(index);
-                    }
-
-                    // Set the vertex's parent to the new shortest path
-                    neighbor->dijkstraParentIndex = minIndex;
-                }
-            }
-        }
-    }
-    printf("idk");
-/*    for (int j = 0; j < pQueue->size; ++j) {
-        debugArray[j] = pQueue->heap[j];
-    }*/
 }
 
 void readInput(Graph* graph) {
@@ -317,6 +216,12 @@ void moveBugs(Graph* maze) {
             maze->graphArray[j]->label = NOT_ON_QUEUE;
             maze->graphArray[j]->bfsParentIndex = -1;
         }
+
+        // Reset the indices between each run of Dijkstra
+        for (j = 0; j < maze->rowLength * maze->colHeight; ++j) {
+            maze->graphArray[j]->dijkstraParentIndex = 0;
+        }
+
         // Run Dijkstra's to find the best path to get to Tron
         dijkstra(maze->tronIndex, maze);
 
@@ -349,7 +254,7 @@ void moveBugs(Graph* maze) {
             // Find the length of the shortest path and print it out
             int shortestLength = 0;
             nextVertex = bug->nodeIndex;
-            while (maze->graphArray[nextVertex]->dijkstraParentIndex != -1) {
+            while (maze->graphArray[nextVertex]->dijkstraParentIndex != 0) {
                 shortestLength++;
                 nextVertex = maze->graphArray[nextVertex]->dijkstraParentIndex;
             }
@@ -357,10 +262,10 @@ void moveBugs(Graph* maze) {
 
             // Reset nextVertex and print the nodes on the shortest path including Tron's index
             // The while condition is different because the while loop above ignore's Tron's index
-            // whose bfsParentIndex is -1 but this runs one more time by having it check nextVertex
+            // whose dijkstraParentIndex is 0 but this runs one more time by having it check nextVertex
             // instead of the current vertex
             nextVertex = bug->nodeIndex;
-            while (nextVertex != -1) {
+            while (nextVertex != 0) {
                 printf(" (%d,%d)", nextVertex / maze->rowLength, nextVertex % maze->rowLength);
                 nextVertex = maze->graphArray[nextVertex]->dijkstraParentIndex;
             }
@@ -421,6 +326,73 @@ void bfs(Graph* graph, int startingNodeIndex) {
     }
     free(queue->queue);
     free(queue);
+}
+
+void dijkstra(int startIndex, Graph* graph){
+    // Initialize all values of D[] to infinity except the start
+    int graphSize = graph->rowLength * graph->colHeight;
+    int distancesArray[graphSize];
+    int i;
+    for (i = 0; i < graphSize; ++i) {
+        distancesArray[i] = INT_MAX;
+    }
+    distancesArray[startIndex] = 0;
+
+    // Initialize Priority Queue
+    PriorityQueue* pQueue = malloc(sizeof(PriorityQueue));
+    pQueue->heap = NULL;
+    pQueue->size = graphSize;
+
+    int j;
+    for (j = 0; j < graphSize; ++j) {
+        graph->graphArray[j]->dijkstraLabel = distancesArray[j];
+        graph->graphArray[j]->inQueue = 1;
+        addToPQueue(j, pQueue, graph);
+    }
+
+    // Algorithm
+    while (pQueue->emptyIndex > 0){
+        int minIndex = removeMin(pQueue, graph);
+        GraphNode* min = graph->graphArray[minIndex];
+        min->inQueue = 0;
+
+        if(min->data == '#' || min->data == 'I'){
+            continue;
+        }
+
+        for (i = 0; i < 4; ++i) {
+            int neighborIndex = min->adjNodes[i];
+            GraphNode* neighbor = graph->graphArray[neighborIndex];
+            if(neighbor->inQueue && neighbor->data != '#' && neighbor->data != 'I'){
+                // Set distance between these vertices based on what hw6.pdf says
+                int distBetween;
+                if(min->onTronsPath && neighbor->onTronsPath){
+                    distBetween = 1;
+                } else if(min->onTronsPath && neighbor->onTronsPath){
+                    distBetween = 2;
+                } else {
+                    distBetween = 3;
+                }
+                // Edge Relaxation
+                if(distancesArray[minIndex] + distBetween < distancesArray[neighborIndex]){
+                    // Update distance
+                    distancesArray[neighborIndex] = distancesArray[minIndex] + distBetween;
+
+                    // Update Priority Queue
+                    int heapIndex = findInPQueue(neighborIndex, pQueue);
+                    graph->graphArray[*pQueue->heap[heapIndex]]->dijkstraLabel = distancesArray[minIndex] + distBetween;
+                    int index = heapIndex;
+                    while (index > 0 && graph->graphArray[*pQueue->heap[heapParent(index)]]->dijkstraLabel > graph->graphArray[*pQueue->heap[index]]->dijkstraLabel){
+                        swap(pQueue->heap[index], pQueue->heap[heapParent(index)]);
+                        index = heapParent(index);
+                    }
+
+                    // Set the vertex's parent to the new shortest path
+                    neighbor->dijkstraParentIndex = minIndex;
+                }
+            }
+        }
+    }
 }
 
 void enqueue(Queue* queue, int data) {
@@ -493,8 +465,8 @@ void readMazeFromFile(char* filename, Graph* graph) {
         // The first line contains the dimensions for the graph
         if (lineCounter == 0) {
             char *mazeSizeString = strtok(currentLine, " ");
-            graph->rowLength = atoi(mazeSizeString);
-            graph->colHeight = atoi(strtok(NULL, " "));
+            graph->colHeight = atoi(mazeSizeString);
+            graph->rowLength = atoi(strtok(NULL, " "));
             graph->graphArray = calloc(graph->rowLength * graph->colHeight, sizeof(GraphNode *));
         }
         // The rest of the lines contain the maze. Each character is added to the graph.
@@ -525,7 +497,7 @@ void addGraphNode(char data, Graph* graph) {
         graph->towerIndex = graph->emptyIndex;
     }
     // If it's a bug let's keep track of them using their indices in a list so we don't have to search for them later
-    else if (data != ' ' && data != '#' && data != 'I') {
+    else if (data != ' ' && data != '#') {
         addNodeToList(&graph->bugs, graph->emptyIndex, graph);
     }
 
@@ -577,11 +549,14 @@ void addToPQueue(int dataIndex, PriorityQueue* queue, Graph* graph){
     int* data = malloc(sizeof(int));
     *data = dataIndex;
 
+    // Initialize Priority Queue
     if(queue->heap == NULL){
         queue->heap = malloc(queue->size * sizeof(int*));
         queue->heap[0] = data;
         queue->emptyIndex = 1;
-    } else {
+    }
+    // Add new data to Priority Queue and swap with its parents until it's in place
+    else {
         queue->heap[queue->emptyIndex] = data;
 
         int index = queue->emptyIndex;
@@ -594,13 +569,14 @@ void addToPQueue(int dataIndex, PriorityQueue* queue, Graph* graph){
 }
 
 void minHeapify(int index, PriorityQueue* pQueue, Graph* graph){
+    // Maintain heap order
     int smallest = index;
     if (heapLeft(index) < pQueue->emptyIndex &&
-        graph->graphArray[*pQueue->heap[heapLeft(index)]]->label < graph->graphArray[*pQueue->heap[index]]->label){
+        graph->graphArray[*pQueue->heap[heapLeft(index)]]->dijkstraLabel < graph->graphArray[*pQueue->heap[index]]->dijkstraLabel){
         smallest = heapLeft(index);
     }
     if (heapRight(index) < pQueue->emptyIndex &&
-        graph->graphArray[*pQueue->heap[heapRight(index)]]->label < graph->graphArray[*pQueue->heap[smallest]]->label){
+        graph->graphArray[*pQueue->heap[heapRight(index)]]->dijkstraLabel < graph->graphArray[*pQueue->heap[smallest]]->dijkstraLabel){
         smallest = heapRight(index);
     }
     if (smallest != index){
@@ -617,4 +593,14 @@ int removeMin(PriorityQueue* pQueue, Graph* graph){
 
     minHeapify(0, pQueue, graph);
     return min;
+}
+
+int findInPQueue(int nodeIndex, PriorityQueue* pQueue){
+    int i;
+    for (i = 0; i < pQueue->emptyIndex; ++i) {
+        if (*pQueue->heap[i] == nodeIndex){
+            return i;
+        }
+    }
+    return -1;
 }

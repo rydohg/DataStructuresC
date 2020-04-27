@@ -100,3 +100,27 @@ debugArray[i] = maze.graphArray[i];
         printf(" (%d,%d)", nextVertex / maze->rowLength, nextVertex % maze->rowLength);
         nextVertex = maze->graphArray[nextVertex]->bfsParentIndex;
     }*/
+/*
+void printDijkstra(Graph* maze) {
+    int i;
+    for (i = 0; i < maze->rowLength * maze->colHeight; ++i) {
+        int label = maze->graphArray[i]->dijkstraLabel;
+        if(label != INT_MAX){
+            char labelString[4];
+            snprintf(labelString, 3, "%d", label);
+            if(strlen(labelString) == 1){
+                printf("  ");
+            } else if(strlen(labelString) == 2){
+                printf(" ");
+            }
+            printf("%d", maze->graphArray[i]->dijkstraLabel);
+        } else {
+            printf("  M");
+        }
+
+        // Add a newline after the last char in  a row
+        if (i % maze->rowLength == maze->rowLength - 1) {
+            printf("\n");
+        }
+    }
+}*/

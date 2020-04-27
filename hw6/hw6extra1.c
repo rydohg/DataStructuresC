@@ -346,8 +346,8 @@ void readMazeFromFile(char *filename, Graph *graph) {
         // The first line contains the dimensions for the graph
         if (lineCounter == 0) {
             char *mazeSizeString = strtok(currentLine, " ");
-            graph->rowLength = atoi(mazeSizeString);
-            graph->colHeight = atoi(strtok(NULL, " "));
+            graph->colHeight = atoi(mazeSizeString);
+            graph->rowLength = atoi(strtok(NULL, " "));
             graph->graphArray = calloc(graph->rowLength * graph->colHeight, sizeof(GraphNode *));
         }
             // The rest of the lines contain the maze. Each character is added to the graph.
