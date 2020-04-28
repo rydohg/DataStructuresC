@@ -161,8 +161,16 @@ void readInput(Graph* graph) {
         if(runAgain) { continue; }
 
         // If we can move to a cell then do it
-        if (graph->graphArray[newIndex]->data == ' ' || graph->graphArray[newIndex]->data == 'I') {
+        if (graph->graphArray[newIndex]->data != '#') {
             char newIndexOldData = graph->graphArray[newIndex]->data;
+
+            // Kill Tron if he tries to go into a bug
+            if(newIndexOldData >= 'a' && newIndexOldData <= 'z'){
+                graph->graphArray[graph->tronIndex]->data = ' ';
+                printMaze(graph);
+                printf("A bug is not hungry any more!\n");
+                exit(0);
+            }
 
             graph->graphArray[graph->tronIndex]->data = ' ';
             graph->graphArray[newIndex]->data = 'T';
@@ -176,7 +184,7 @@ void readInput(Graph* graph) {
                 exit(0);
             }
         }
-            // If Tron can move then keep asking for input
+        // If Tron can move then keep asking for input
         else if (graph->graphArray[up(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[down(graph->tronIndex, graph->rowLength)]->data == ' ' ||
                  graph->graphArray[left(graph->tronIndex, graph->rowLength)]->data == ' ' ||
@@ -194,6 +202,7 @@ void moveBugs(Graph* maze) {
     for (i = 0; i < maze->rowLength * maze->colHeight; ++i) {
         maze->graphArray[i]->label = NOT_ON_QUEUE;
         maze->graphArray[i]->bfsParentIndex = -1;
+        maze->graphArray[i]->onTronsPath = 0;
     }
     // Find Tron's shortest path
     bfs(maze, maze->towerIndex);
@@ -208,14 +217,8 @@ void moveBugs(Graph* maze) {
     // For each bug determine the next move as calculated in BFS then create the output specified in HW6.pdf
     NodeList *bug = maze->bugs;
     while (bug != NULL) {
-        // Reset the labels and parentIndices between each run of BFS
-        int j;
-        for (j = 0; j < maze->rowLength * maze->colHeight; ++j) {
-            maze->graphArray[j]->label = NOT_ON_QUEUE;
-            maze->graphArray[j]->bfsParentIndex = -1;
-        }
-
         // Reset the indices between each run of Dijkstra
+        int j;
         for (j = 0; j < maze->rowLength * maze->colHeight; ++j) {
             maze->graphArray[j]->dijkstraParentIndex = 0;
         }
@@ -226,7 +229,7 @@ void moveBugs(Graph* maze) {
         GraphNode *bugNode = maze->graphArray[bug->nodeIndex];
         int newIndex = bugNode->dijkstraParentIndex;
         // If the bug doesn't have a path to Tron then just print the bug name
-        if(newIndex < 0){
+        if(newIndex < 0 || (maze->graphArray[newIndex]->data != ' ' && maze->graphArray[newIndex]->data != 'T')){
             printf("Bug %c:\n", bugNode->data);
             bug = bug->next;
             continue;
@@ -250,12 +253,7 @@ void moveBugs(Graph* maze) {
             printf("Bug %c: %c", bugNode->data, move);
 
             // Find the length of the shortest path and print it out
-            int shortestLength = 0;
-            nextVertex = bug->nodeIndex;
-            while (maze->graphArray[nextVertex]->dijkstraParentIndex != 0) {
-                shortestLength++;
-                nextVertex = maze->graphArray[nextVertex]->dijkstraParentIndex;
-            }
+            int shortestLength = bugNode->dijkstraLabel - 1;
             printf(" %d", shortestLength);
 
             // Reset nextVertex and print the nodes on the shortest path including Tron's index

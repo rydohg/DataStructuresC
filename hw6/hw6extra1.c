@@ -134,8 +134,16 @@ void readInput(Graph *graph) {
         if(runAgain) { continue; }
 
         // If we can move to a cell then do it
-        if (graph->graphArray[newIndex]->data == ' ' || graph->graphArray[newIndex]->data == 'I') {
+        if (graph->graphArray[newIndex]->data != '#') {
             char newIndexOldData = graph->graphArray[newIndex]->data;
+
+            // Kill Tron if he tries to go into a bug
+            if(newIndexOldData >= 'a' && newIndexOldData <= 'z'){
+                graph->graphArray[graph->tronIndex]->data = ' ';
+                printMaze(graph);
+                printf("A bug is not hungry any more!\n");
+                exit(0);
+            }
 
             graph->graphArray[graph->tronIndex]->data = ' ';
             graph->graphArray[newIndex]->data = 'T';
